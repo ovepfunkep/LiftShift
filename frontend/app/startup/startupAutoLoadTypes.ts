@@ -4,6 +4,7 @@ import type { DataSourceChoice } from '../../utils/storage/dataSourceStorage';
 import type { OnboardingFlow } from './onboarding/types';
 
 export interface StartupAutoLoadParams {
+  parsedData: WorkoutSet[];
   setOnboarding: Dispatch<SetStateAction<OnboardingFlow | null>>;
   setDataSource: Dispatch<SetStateAction<DataSourceChoice | null>>;
   setParsedData: Dispatch<SetStateAction<WorkoutSet[]>>;

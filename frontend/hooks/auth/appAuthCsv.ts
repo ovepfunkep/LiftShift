@@ -10,7 +10,7 @@ import { trackEvent } from '../../utils/integrations/analytics';
 import type { AppAuthHandlersDeps } from './appAuthTypes';
 import { APP_LOADING_STEPS } from '../../app/loadingSteps';
 
-// Simple 3-step timeline for CSV
+// Simple 2-step timeline for CSV
 const STEP = APP_LOADING_STEPS;
 
 export const runCsvImport = (
@@ -22,7 +22,7 @@ export const runCsvImport = (
   trackEvent('csv_import_start', { platform, unit: unitOverride ?? deps.weightUnit });
   deps.setLoadingKind('csv');
   deps.setIsAnalyzing(true);
-  deps.setLoadingStep(STEP.INIT);
+  deps.setLoadingStep(STEP.CONNECT);
   const startedAt = deps.startProgress();
 
   const reader = new FileReader();
@@ -31,7 +31,6 @@ export const runCsvImport = (
     const text = e.target?.result;
     if (typeof text === 'string') {
       deps.setCsvImportError(null);
-      deps.setLoadingStep(STEP.PROCESS);
 
       const unit = unitOverride ?? deps.weightUnit;
       parseWorkoutCSVAsyncWithUnit(text, { unit })

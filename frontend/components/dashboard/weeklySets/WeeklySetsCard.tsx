@@ -3,7 +3,7 @@ import { formatDeltaPercentage } from '../../../utils/format/deltaFormat';
 import { type BodyMapGender } from '../../bodyMap/BodyMap';
 import { ChartDescription, InsightLine, InsightText, TrendBadge, BadgeLabel } from '../insights/ChartBits';
 import { toHeadlessVolumeMap } from '../../../utils/muscle/mapping';
-import { getGroupHighlightIds, getHeadlessRadarSeries } from '../../../utils/muscle/mapping';
+import { getHeadlessRadarSeries } from '../../../utils/muscle/mapping';
 import { differenceInCalendarDays } from 'date-fns';
 import { isPlausibleDate } from '../../../utils/date/dateUtils';
 import { WeeklySetsHeader } from './WeeklySetsHeader';
@@ -12,7 +12,6 @@ import { WeeklySetsHeatmapView } from './WeeklySetsHeatmapView';
 
 type WeeklySetsView = 'radar' | 'heatmap';
 type WeeklySetsWindow = 'all' | '7d' | '30d' | '365d';
-type WeeklySetsGrouping = 'groups' | 'muscles';
 
 type HeatmapData = {
   volumes: Map<string, number>;
@@ -32,8 +31,6 @@ export const WeeklySetsCard = ({
   isMounted,
   weeklySetsView,
   setWeeklySetsView,
-  compositionGrouping,
-  setCompositionGrouping,
   muscleCompQuick,
   setMuscleCompQuick,
   heatmap,
@@ -46,8 +43,6 @@ export const WeeklySetsCard = ({
   isMounted: boolean;
   weeklySetsView: WeeklySetsView;
   setWeeklySetsView: (v: WeeklySetsView) => void;
-  compositionGrouping: WeeklySetsGrouping;
-  setCompositionGrouping: (v: WeeklySetsGrouping) => void;
   muscleCompQuick: WeeklySetsWindow;
   setMuscleCompQuick: (v: WeeklySetsWindow) => void;
   heatmap: HeatmapData;
@@ -81,11 +76,7 @@ export const WeeklySetsCard = ({
     return { total, top, top3Share, durationLabel };
   }, [radarData, windowStart, now]);
 
-  const heatmapHoveredMuscleIds = useMemo(() => {
-    if (!heatmapHoveredMuscle) return undefined;
-    if (compositionGrouping !== 'groups') return undefined;
-    return getGroupHighlightIds(heatmapHoveredMuscle);
-  }, [heatmapHoveredMuscle, compositionGrouping]);
+  const heatmapHoveredMuscleIds = undefined;
 
   const handleBodyMapClick = (muscleId: string) => {
     if (!onMuscleClick) return;
@@ -99,8 +90,6 @@ export const WeeklySetsCard = ({
       <WeeklySetsHeader
         weeklySetsView={weeklySetsView}
         setWeeklySetsView={setWeeklySetsView}
-        compositionGrouping={compositionGrouping}
-        setCompositionGrouping={setCompositionGrouping}
         muscleCompQuick={muscleCompQuick}
         setMuscleCompQuick={setMuscleCompQuick}
       />

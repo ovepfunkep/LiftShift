@@ -1,16 +1,13 @@
 import React from 'react';
 import { Grid3X3, Infinity, Scan } from 'lucide-react';
-import { WeeklySetsBodyIcon, WeeklySetsMuscleIcon } from './WeeklySetsIcons';
+import { WeeklySetsBodyIcon } from './WeeklySetsIcons';
 
 type WeeklySetsView = 'radar' | 'heatmap';
 type WeeklySetsWindow = 'all' | '7d' | '30d' | '365d';
-type WeeklySetsGrouping = 'groups' | 'muscles';
 
 interface WeeklySetsHeaderProps {
   weeklySetsView: WeeklySetsView;
   setWeeklySetsView: (v: WeeklySetsView) => void;
-  compositionGrouping: WeeklySetsGrouping;
-  setCompositionGrouping: (v: WeeklySetsGrouping) => void;
   muscleCompQuick: WeeklySetsWindow;
   setMuscleCompQuick: (v: WeeklySetsWindow) => void;
 }
@@ -18,8 +15,6 @@ interface WeeklySetsHeaderProps {
 export const WeeklySetsHeader: React.FC<WeeklySetsHeaderProps> = ({
   weeklySetsView,
   setWeeklySetsView,
-  compositionGrouping,
-  setCompositionGrouping,
   muscleCompQuick,
   setMuscleCompQuick,
 }) => (
@@ -57,35 +52,6 @@ export const WeeklySetsHeader: React.FC<WeeklySetsHeaderProps> = ({
         </button>
       </div>
 
-      <div className="bg-black/70 p-0.5 rounded-lg inline-flex gap-0.5 border border-slate-800 shrink-0 hidden">
-        <button
-          onClick={() => setCompositionGrouping('groups')}
-          title="Groups"
-          aria-label="Groups"
-          className={`w-6 h-5 flex items-center justify-center rounded ${
-            compositionGrouping === 'groups'
-              ? 'bg-cyan-600 text-white'
-              : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
-          }`}
-        >
-          <WeeklySetsBodyIcon className="w-3 h-3" />
-          <span className="sr-only">Groups</span>
-        </button>
-        <button
-          onClick={() => setCompositionGrouping('muscles')}
-          title="Muscles"
-          aria-label="Muscles"
-          className={`w-6 h-5 flex items-center justify-center rounded ${
-            compositionGrouping === 'muscles'
-              ? 'bg-cyan-600 text-white'
-              : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
-          }`}
-        >
-          <WeeklySetsMuscleIcon className="w-3 h-3" />
-          <span className="sr-only">Muscles</span>
-        </button>
-      </div>
-
       <div className="bg-black/70 p-0.5 rounded-lg inline-flex gap-0.5 border border-slate-800 shrink-0">
         <button
           onClick={() => setMuscleCompQuick('all')}
@@ -102,25 +68,25 @@ export const WeeklySetsHeader: React.FC<WeeklySetsHeaderProps> = ({
         </button>
         <button
           onClick={() => setMuscleCompQuick('7d')}
-          title="Last 7 days"
-          aria-label="Last 7 days"
-          className={`px-1 h-5 flex items-center justify-center rounded text-[8px] font-bold leading-none ${
+          title="Last week"
+          aria-label="Last week"
+          className={`px-1 h-5 flex items-center justify-center rounded text-[8px] font-bold leading-none whitespace-nowrap ${
             muscleCompQuick === '7d' ? 'bg-cyan-600 text-white' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
           }`}
         >
-          7d
+          lst wk
         </button>
         <button
           onClick={() => setMuscleCompQuick('30d')}
-          title="Last 30 days"
-          aria-label="Last 30 days"
-          className={`px-1 h-5 flex items-center justify-center rounded text-[8px] font-bold leading-none ${
+          title="Last month"
+          aria-label="Last month"
+          className={`px-1 h-5 flex items-center justify-center rounded text-[8px] font-bold leading-none whitespace-nowrap ${
             muscleCompQuick === '30d'
               ? 'bg-cyan-600 text-white'
               : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
           }`}
         >
-          30d
+          lst mo
         </button>
         <button
           onClick={() => setMuscleCompQuick('365d')}

@@ -14,7 +14,7 @@ import { trackEvent } from '../../utils/integrations/analytics';
 import type { AppAuthHandlersDeps } from './appAuthTypes';
 import { APP_LOADING_STEPS } from '../../app/loadingSteps';
 
-// Simple 3-step timeline
+// Simple 2-step timeline
 const STEP = APP_LOADING_STEPS;
 
 export const runLyfatSyncSaved = (deps: AppAuthHandlersDeps): void => {
@@ -26,10 +26,9 @@ export const runLyfatSyncSaved = (deps: AppAuthHandlersDeps): void => {
   deps.setLyfatLoginError(null);
   deps.setLoadingKind('lyfta');
   deps.setIsAnalyzing(true);
-  deps.setLoadingStep(STEP.INIT);
+  deps.setLoadingStep(STEP.CONNECT);
   const startedAt = deps.startProgress();
 
-  deps.setLoadingStep(STEP.PROCESS);
   lyfatBackendGetSets<WorkoutSet>(apiKey)
     .then((resp) => {
       const sets = resp.sets ?? [];
@@ -57,10 +56,9 @@ export const runLyfatLogin = (deps: AppAuthHandlersDeps, apiKey: string): void =
   deps.setLyfatLoginError(null);
   deps.setLoadingKind('lyfta');
   deps.setIsAnalyzing(true);
-  deps.setLoadingStep(STEP.INIT);
+  deps.setLoadingStep(STEP.CONNECT);
   const startedAt = deps.startProgress();
 
-  deps.setLoadingStep(STEP.PROCESS);
   lyfatBackendGetSets<WorkoutSet>(apiKey)
     .then((resp) => {
       trackEvent('lyfta_sync_success', { method: 'api_key', workouts: resp.meta?.workouts });

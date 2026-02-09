@@ -43,8 +43,14 @@ const getWindowStart = (data: WorkoutSet[], now: Date, window: WeeklySetsWindow)
         ? subDays(now, 30)
         : subDays(now, 365);
 
-  // Clamp to the user's first workout date so we don't include pre-history empty time.
-  return earliest > candidate ? earliest : candidate;
+  // Only clamp to earliest workout for yearly view.
+  // For 7d and 30d, use exact rolling windows for predictable behavior.
+  if (window === '365d') {
+    // Clamp to the user's first workout date so we don't include pre-history empty time.
+    return earliest > candidate ? earliest : candidate;
+  }
+
+  return candidate;
 };
 
 export const computeWeeklySetsDashboardData = (

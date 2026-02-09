@@ -101,6 +101,11 @@ const App: React.FC = () => {
     isAnalyzing,
     loadingStep,
     progress,
+    setLoadingKind,
+    setIsAnalyzing,
+    setLoadingStep,
+    startProgress,
+    finishProgress,
     handleHevySyncSaved,
     handleHevyApiKeyLogin,
     handleHevyLogin,
@@ -125,17 +130,18 @@ const App: React.FC = () => {
   usePrefetchHeavyViews();
 
   useStartupAutoLoad({
+    parsedData,
     setOnboarding,
     setDataSource,
     setParsedData,
     setHevyLoginError: clearHevyLoginError,
     setLyfatLoginError: clearLyfatLoginError,
     setCsvImportError: clearCsvImportError,
-    setIsAnalyzing: () => {},
-    setLoadingStep: () => {},
-    setLoadingKind: () => {},
-    startProgress: () => 0,
-    finishProgress: () => {},
+    setIsAnalyzing,
+    setLoadingStep,
+    setLoadingKind,
+    startProgress,
+    finishProgress,
   });
 
   const { filteredEffectiveNow, calendarEffectiveNow, dataAgeInfo, dailySummaries, exerciseStats } = useAppDerivedData({

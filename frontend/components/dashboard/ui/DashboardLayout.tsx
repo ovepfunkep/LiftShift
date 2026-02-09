@@ -35,7 +35,6 @@ interface DashboardLayoutProps {
   weeklySetsView: 'heatmap' | 'radar';
   setWeeklySetsView: (v: 'heatmap' | 'radar') => void;
   compositionGrouping: 'muscles' | 'groups';
-  setCompositionGrouping: (v: 'muscles' | 'groups') => void;
   muscleCompQuick: 'all' | '7d' | '30d' | '365d';
   setMuscleCompQuick: (v: 'all' | '7d' | '30d' | '365d') => void;
   weeklySetsDashboard: any;
@@ -108,7 +107,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
     weeklySetsView,
     setWeeklySetsView,
     compositionGrouping,
-    setCompositionGrouping,
     muscleCompQuick,
     setMuscleCompQuick,
     weeklySetsDashboard,
@@ -192,7 +190,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
           weeklySetsView={weeklySetsView}
           setWeeklySetsView={setWeeklySetsView}
           compositionGrouping={compositionGrouping}
-          setCompositionGrouping={setCompositionGrouping}
           muscleCompQuick={muscleCompQuick}
           setMuscleCompQuick={setMuscleCompQuick}
           weeklySetsDashboard={weeklySetsDashboard}

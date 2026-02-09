@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { WorkoutSet } from '../types';
 import { WeightUnit } from '../../utils/storage/localStorage';
 import type { DataSourceChoice } from '../../utils/storage/dataSourceStorage';
@@ -21,6 +21,9 @@ export interface UseAppAuthReturn {
   isAnalyzing: boolean;
   loadingStep: number;
   progress: number;
+  setLoadingKind: (kind: 'hevy' | 'lyfta' | 'csv' | null) => void;
+  setIsAnalyzing: (value: boolean) => void;
+  setLoadingStep: (step: number) => void;
   startProgress: () => number;
   finishProgress: (startedAt: number) => void;
   handleHevySyncSaved: () => void;
@@ -59,6 +62,12 @@ export function useAppAuth({
   const [loadingStep, setLoadingStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const progressTimerRef = { current: null as number | null };
+  const progressValueRef = { current: 0 };
+  
+  // Keep ref in sync with state for finishProgress to read current value
+  useEffect(() => {
+    progressValueRef.current = progress;
+  }, [progress]);
 
   const startProgress = useCallback((): number => {
     setProgress(0);
@@ -68,8 +77,17 @@ export function useAppAuth({
     const startTime = Date.now();
     const interval = window.setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const simulatedProgress = Math.min(90, elapsed / 50);
-      setProgress(simulatedProgress);
+      // Hybrid approach: fast initial bump to 30%, then asymptotic to 95%
+      let simulatedProgress: number;
+      if (elapsed < 300) {
+        // Fast ramp to 30% in first 300ms (instant feedback)
+        simulatedProgress = (elapsed / 300) * 30;
+      } else {
+        // Asymptotic easing from 30% toward 95%
+        const decay = 1 - Math.exp(-(elapsed - 300) / 2500);
+        simulatedProgress = 30 + (65 * decay);
+      }
+      setProgress(Math.min(95, simulatedProgress));
     }, 50);
     progressTimerRef.current = interval;
     return startTime;
@@ -80,12 +98,34 @@ export function useAppAuth({
       window.clearInterval(progressTimerRef.current);
       progressTimerRef.current = null;
     }
-    setProgress(100);
-    window.setTimeout(() => {
-      setIsAnalyzing(false);
-      setLoadingKind(null);
-      setProgress(0);
-    }, 300);
+    
+    // Rapidly animate to 100% and show completion state
+    const currentProgress = progressValueRef.current;
+    const remaining = 100 - currentProgress;
+    const animationDuration = 80; // ms to reach 100%
+    const animationStart = Date.now();
+    
+    // Show all steps as completed
+    setLoadingStep(2); // Step 2 means both steps (0 and 1) show as completed
+    
+    // Animate progress bar to 100% quickly
+    const animationInterval = window.setInterval(() => {
+      const elapsed = Date.now() - animationStart;
+      const progressRatio = Math.min(1, elapsed / animationDuration);
+      const newProgress = currentProgress + (remaining * progressRatio);
+      setProgress(newProgress);
+      
+      if (progressRatio >= 1) {
+        window.clearInterval(animationInterval);
+        // Brief moment to show completed state, then hide
+        window.setTimeout(() => {
+          setIsAnalyzing(false);
+          setLoadingKind(null);
+          setProgress(0);
+          setLoadingStep(0);
+        }, 100);
+      }
+    }, 16); // ~60fps
   }, []);
 
   const handlerDeps = useMemo<AppAuthHandlersDeps>(
@@ -148,6 +188,9 @@ export function useAppAuth({
     isAnalyzing,
     loadingStep,
     progress,
+    setLoadingKind,
+    setIsAnalyzing,
+    setLoadingStep,
     startProgress,
     finishProgress,
     handleHevySyncSaved,

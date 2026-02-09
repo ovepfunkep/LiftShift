@@ -20,7 +20,6 @@ interface DashboardPrimaryChartsProps {
   weeklySetsView: 'heatmap' | 'radar';
   setWeeklySetsView: (v: 'heatmap' | 'radar') => void;
   compositionGrouping: 'muscles' | 'groups';
-  setCompositionGrouping: (v: 'muscles' | 'groups') => void;
   muscleCompQuick: 'all' | '7d' | '30d' | '365d';
   setMuscleCompQuick: (v: 'all' | '7d' | '30d' | '365d') => void;
   weeklySetsDashboard: any;
@@ -56,7 +55,6 @@ export const DashboardPrimaryCharts: React.FC<DashboardPrimaryChartsProps> = ({
   weeklySetsView,
   setWeeklySetsView,
   compositionGrouping,
-  setCompositionGrouping,
   muscleCompQuick,
   setMuscleCompQuick,
   weeklySetsDashboard,
@@ -100,8 +98,6 @@ export const DashboardPrimaryCharts: React.FC<DashboardPrimaryChartsProps> = ({
           isMounted={isMounted}
           weeklySetsView={weeklySetsView}
           setWeeklySetsView={setWeeklySetsView}
-          compositionGrouping={compositionGrouping}
-          setCompositionGrouping={setCompositionGrouping}
           muscleCompQuick={muscleCompQuick}
           setMuscleCompQuick={setMuscleCompQuick}
           heatmap={weeklySetsDashboard.heatmap}

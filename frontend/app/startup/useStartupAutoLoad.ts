@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { getCSVData, getPreferencesConfirmed, getWeightUnit, savePreferencesConfirmed } from '../../utils/storage/localStorage';
 import {
@@ -10,18 +10,30 @@ import {
   getLyfataApiKey,
   getSetupComplete,
   saveSetupComplete,
+  type DataSourceChoice,
+  type LoginMethod,
 } from '../../utils/storage/dataSourceStorage';
 import { getHevyUsernameOrEmail } from '../../utils/storage/hevyCredentialsStorage';
 
 import { loadCsvAuto } from './startupAutoLoadCsv';
 import { loadLyftaFromApiKey } from './startupAutoLoadLyfta';
-import { loadHevyFromProKey, loadHevyFromToken } from './startupAutoLoadHevy';
+import { loadHevyFromProKey, loadHevyFromToken, loadHevyFromCredentials } from './startupAutoLoadHevy';
 import type { StartupAutoLoadParams } from './startupAutoLoadTypes';
+import { APP_LOADING_STEPS } from '../loadingSteps';
 
 export type { StartupAutoLoadParams } from './startupAutoLoadTypes';
 
 export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
+  const hasAttemptedRef = useRef(false);
+
   useEffect(() => {
+    // Prevent multiple attempts
+    if (hasAttemptedRef.current) return;
+    hasAttemptedRef.current = true;
+
+    // If dashboard already has data, don't auto-reload
+    if (params.parsedData.length > 0) return;
+
     if (!getSetupComplete()) return;
 
     if (!getPreferencesConfirmed()) {
@@ -31,9 +43,17 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
     const storedChoice = getDataSourceChoice();
     if (!storedChoice) {
       saveSetupComplete(false);
+      params.setIsAnalyzing(false);
+      params.setLoadingKind(null);
       params.setOnboarding({ intent: 'initial', step: 'platform' });
       return;
     }
+
+    // IMMEDIATELY show loading overlay before any async operations
+    // This prevents showing an empty dashboard
+    params.setLoadingKind(storedChoice === 'hevy' ? 'hevy' : storedChoice === 'lyfta' ? 'lyfta' : 'csv');
+    params.setIsAnalyzing(true);
+    params.setLoadingStep(APP_LOADING_STEPS.CONNECT);
 
     params.setDataSource(storedChoice);
 
@@ -42,134 +62,112 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
 
     const storedCSV = getCSVData();
     const lastCsvPlatform = getLastCsvPlatform();
-    const shouldUseCsv = lastMethod === 'csv' || (!lastMethod && storedCSV && lastCsvPlatform === storedChoice);
     const weightUnit = getWeightUnit();
 
     const resetToPlatform = () => {
       saveSetupComplete(false);
+      params.setIsAnalyzing(false);
+      params.setLoadingKind(null);
       params.setOnboarding({ intent: 'initial', step: 'platform' });
     };
 
-    if (storedChoice === 'strong' || storedChoice === 'other') {
-      if (!storedCSV || lastCsvPlatform !== storedChoice) {
-        resetToPlatform();
-        return;
-      }
-
-      loadCsvAuto(params, {
-        platform: storedChoice,
-        storedCSV,
-        weightUnit,
-        clearLoginErrors: () => params.setHevyLoginError(null),
-      });
-      return;
-    }
-
-    if (storedChoice === 'lyfta') {
-      const lyfatApiKey = getLyfataApiKey();
-      if (lastMethod === 'apiKey' && lyfatApiKey) {
-        loadLyftaFromApiKey(params, lyfatApiKey);
-        return;
-      }
-
-      if (shouldUseCsv) {
-        if (!storedCSV || lastCsvPlatform !== 'lyfta') {
+    // Unified retry wrapper
+    const attemptReload = async (
+      platform: DataSourceChoice,
+      method: LoginMethod | null
+    ): Promise<boolean> => {
+      // Platform: Strong / Other - only CSV
+      if (platform === 'strong' || platform === 'other') {
+        if (!storedCSV || lastCsvPlatform !== platform) {
           resetToPlatform();
-          return;
+          return false;
         }
 
         loadCsvAuto(params, {
-          platform: 'lyfta',
-          storedCSV,
-          weightUnit,
-          clearLoginErrors: () => params.setLyfatLoginError(null),
-        });
-        return;
-      }
-
-      if (lyfatApiKey) {
-        loadLyftaFromApiKey(params, lyfatApiKey);
-        return;
-      }
-
-      if (storedCSV && lastCsvPlatform === 'lyfta') {
-        loadCsvAuto(params, {
-          platform: 'lyfta',
-          storedCSV,
-          weightUnit,
-          clearLoginErrors: () => params.setLyfatLoginError(null),
-        });
-        return;
-      }
-
-      resetToPlatform();
-      return;
-    }
-
-    if (storedChoice === 'hevy' && shouldUseCsv) {
-      if (!storedCSV || lastCsvPlatform !== 'hevy') {
-        resetToPlatform();
-        return;
-      }
-
-      loadCsvAuto(params, {
-        platform: 'hevy',
-        storedCSV,
-        weightUnit,
-        clearLoginErrors: () => params.setHevyLoginError(null),
-      });
-      return;
-    }
-
-    const hevyProApiKey = getHevyProApiKey();
-    if (storedChoice === 'hevy' && lastMethod === 'apiKey' && hevyProApiKey) {
-      loadHevyFromProKey(params, hevyProApiKey);
-      return;
-    }
-
-    const token = getHevyAuthToken();
-    if (storedChoice === 'hevy' && lastMethod === 'credentials' && !token) {
-      resetToPlatform();
-      return;
-    }
-
-    if (storedChoice === 'hevy' && !lastMethod) {
-      if (hevyProApiKey) {
-        loadHevyFromProKey(params, hevyProApiKey);
-        return;
-      }
-      if (token) {
-        loadHevyFromToken(params, token);
-        return;
-      }
-      if (storedCSV && lastCsvPlatform === 'hevy') {
-        loadCsvAuto(params, {
-          platform: 'hevy',
+          platform,
           storedCSV,
           weightUnit,
           clearLoginErrors: () => params.setHevyLoginError(null),
         });
-        return;
+        // CSV loading completes asynchronously; dashboard updates via setParsedData
+        return true;
       }
-      resetToPlatform();
-      return;
-    }
 
-    if (storedChoice === 'hevy' && lastMethod === 'apiKey' && !hevyProApiKey) {
-      resetToPlatform();
-      return;
-    }
+      // Platform: Lyfta
+      if (platform === 'lyfta') {
+        const lyftaApiKey = getLyfataApiKey();
 
-    if (storedChoice !== 'hevy') {
-      resetToPlatform();
-      return;
-    }
+        // Try API key first (preferred for power users)
+        if ((method === 'apiKey' || !method) && lyftaApiKey) {
+          loadLyftaFromApiKey(params, lyftaApiKey);
+          return true;
+        }
 
-    if (!token) {
-      resetToPlatform();
-      return;
-    }
+        // Fallback to CSV
+        if ((method === 'csv' || !method) && storedCSV && lastCsvPlatform === 'lyfta') {
+          loadCsvAuto(params, {
+            platform: 'lyfta',
+            storedCSV,
+            weightUnit,
+            clearLoginErrors: () => params.setLyfatLoginError(null),
+          });
+          return true;
+        }
 
-    loadHevyFromToken(params, token, { successMethod: 'saved_auth_token', errorMethod: 'saved_auth_token' });
+        // No valid method found
+        resetToPlatform();
+        return false;
+      }
+
+      // Platform: Hevy
+      if (platform === 'hevy') {
+        const hevyProApiKey = getHevyProApiKey();
+        const token = getHevyAuthToken();
+        const username = getHevyUsernameOrEmail();
+
+        // Priority 1: API Key (power users)
+        if ((method === 'apiKey' || !method) && hevyProApiKey) {
+          loadHevyFromProKey(params, hevyProApiKey);
+          return true;
+        }
+
+        // Priority 2: Credentials (auto-relogin)
+        if ((method === 'credentials' || !method) && username) {
+          const success = await loadHevyFromCredentials(params, username);
+          if (success) return true;
+          // Credentials failed, try token as fallback
+        }
+
+        // Priority 3: Existing token
+        if (token) {
+          loadHevyFromToken(params, token, {
+            successMethod: 'saved_auth_token',
+            errorMethod: 'saved_auth_token',
+          });
+          return true;
+        }
+
+        // Priority 4: CSV fallback
+        if (storedCSV && lastCsvPlatform === 'hevy') {
+          loadCsvAuto(params, {
+            platform: 'hevy',
+            storedCSV,
+            weightUnit,
+            clearLoginErrors: () => params.setHevyLoginError(null),
+          });
+          return true;
+        }
+
+        // Nothing worked
+        resetToPlatform();
+        return false;
+      }
+
+      resetToPlatform();
+      return false;
+    };
+
+    // Execute auto-reload
+    attemptReload(storedChoice, lastMethod);
   }, []);
 };

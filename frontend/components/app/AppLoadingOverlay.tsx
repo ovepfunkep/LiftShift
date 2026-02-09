@@ -8,20 +8,15 @@ interface AppLoadingOverlayProps {
   progress: number;
 }
 
-// Phase-specific sequential rotating messages (10 per step = 30s total coverage)
-const STEP_0_MESSAGES = [
+// Phase-specific sequential rotating messages
+// Phase 1: Setup + Connection (can take long with cold starts)
+const PHASE_1_MESSAGES = [
   'Initializing...',
   'Setting up workspace...',
   'Preparing environment...',
-  'Getting ready to sync...',
   'Configuring application...',
   'Initializing services...',
-  'Preparing to connect...',
   'Loading configuration...',
-  'Almost ready to begin...',
-];
-
-const STEP_1_MESSAGES = [
   'Connecting to servers...',
   'Establishing connection...',
   'Sending data request...',
@@ -31,9 +26,11 @@ const STEP_1_MESSAGES = [
   'Receiving workout data...',
   'Processing sets and reps...',
   'Syncing with servers...',
+  'Cold starting servers (may take 10s)...',
 ];
 
-const STEP_2_MESSAGES = [
+// Phase 2: Building the UI (usually fast)
+const PHASE_2_MESSAGES = [
   'Building dashboard...',
   'Creating visualizations...',
   'Generating analytics...',
@@ -42,31 +39,29 @@ const STEP_2_MESSAGES = [
   'Building workout views...',
   'Calculating display data...',
   'Rendering components...',
-  'Almost complete...',
+  'Finalizing display...',
+  'Just a moment...',
 ];
 
 const getMessagesForStep = (step: number): string[] => {
   switch (step) {
     case 0:
-      return STEP_0_MESSAGES;
+      return PHASE_1_MESSAGES;
     case 1:
-      return STEP_1_MESSAGES;
-    case 2:
     default:
-      return STEP_2_MESSAGES;
+      return PHASE_2_MESSAGES;
   }
 };
 
 const STEP_LABELS = [
-  'Initializing',
-  'Processing workout data',
-  'Building dashboard',
+  'Connecting & Syncing',
+  'Preparing Dashboard',
 ];
 
-// Hook to rotate messages sequentially through phase-specific list
+// Hook to rotate messages sequentially through phase-specific list (stops at last message)
 const useRotatingMessage = (
   currentStep: number,
-  intervalMs: number = 1000
+  intervalMs: number = 500
 ): string => {
   const [index, setIndex] = useState(0);
   const messages = getMessagesForStep(currentStep);
@@ -76,16 +71,15 @@ const useRotatingMessage = (
 
     const interval = setInterval(() => {
       setIndex((prev) => {
-        // Only rotate within the phase's message list
         if (prev < messages.length - 1) {
           return prev + 1;
         }
-        return prev; // Stay on last message
+        return prev; // Stay on last message (indicates waiting)
       });
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [currentStep, intervalMs]);
+  }, [currentStep, intervalMs, messages.length]);
 
   return messages[index] || '';
 };
@@ -98,7 +92,10 @@ export const AppLoadingOverlay: React.FC<AppLoadingOverlayProps> = ({
   if (!open) return null;
 
   const progressPercent = Math.round(progress);
-  const currentLabel = useRotatingMessage(loadingStep, 1000);
+  // If step is 2 or more, treat as "completed" - show all steps as done
+  const isCompleteState = loadingStep >= 2;
+  const clampedStep = isCompleteState ? 1 : Math.min(Math.max(loadingStep, 0), 1);
+  const currentLabel = useRotatingMessage(clampedStep, 500);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in px-4 sm:px-6">
@@ -111,9 +108,9 @@ export const AppLoadingOverlay: React.FC<AppLoadingOverlayProps> = ({
 
         <div className="w-full space-y-3">
           {STEP_LABELS.map((label, index) => {
-            const isCompleted = loadingStep > index;
-            const isActive = loadingStep === index;
-            const isPending = loadingStep < index;
+            const isCompleted = isCompleteState || clampedStep > index;
+            const isActive = !isCompleteState && clampedStep === index;
+            const isPending = !isCompleteState && clampedStep < index;
 
             // Show rotating message only on active step
             const displayLabel = isActive ? currentLabel : label;

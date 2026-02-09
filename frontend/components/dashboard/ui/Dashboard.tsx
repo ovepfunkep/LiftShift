@@ -121,8 +121,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [musclePeriod, setMusclePeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly' | 'all'>('monthly');
   const [muscleTrendView, setMuscleTrendView] = useState<'area' | 'stackedBar'>('stackedBar');
   const [muscleCompQuick, setMuscleCompQuick] = useState<'all' | '7d' | '30d' | '365d'>('30d');
-  const [compositionGrouping, setCompositionGrouping] = useState<'groups' | 'muscles'>('muscles');
   const [weeklySetsView, setWeeklySetsView] = useState<'radar' | 'heatmap'>('heatmap');
+  // Always use 'muscles' grouping for weekly sets (group view toggle removed from UI)
+  const compositionGrouping = 'muscles' as const;
 
   const [assetsMap, setAssetsMap] = useState<Map<string, ExerciseAsset> | null>(null);
 
@@ -267,7 +268,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
       weeklySetsView={weeklySetsView}
       setWeeklySetsView={setWeeklySetsView}
       compositionGrouping={compositionGrouping}
-      setCompositionGrouping={setCompositionGrouping}
       muscleCompQuick={muscleCompQuick}
       setMuscleCompQuick={setMuscleCompQuick}
       weeklySetsDashboard={weeklySetsDashboard}

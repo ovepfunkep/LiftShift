@@ -24,10 +24,9 @@ import { trackEvent } from '../../utils/integrations/analytics';
 import type { AppAuthHandlersDeps } from './appAuthTypes';
 import { APP_LOADING_STEPS } from '../../app/loadingSteps';
 
-// Simple 3-step timeline
-// 0 = Initializing
-// 1 = Processing (API fetch - the slow part with rotating messages)
-// 2 = Building dashboard (instant)
+// Simple 2-step timeline
+// 0 = Connecting & Syncing (API fetch - the slow part with rotating messages)
+// 1 = Building dashboard (instant)
 const STEP = APP_LOADING_STEPS;
 
 export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
@@ -36,10 +35,9 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
     deps.setHevyLoginError(null);
     deps.setLoadingKind('hevy');
     deps.setIsAnalyzing(true);
-    deps.setLoadingStep(STEP.INIT);
+    deps.setLoadingStep(STEP.CONNECT);
     const startedAt = deps.startProgress();
 
-    deps.setLoadingStep(STEP.PROCESS);
     hevyBackendGetSetsWithProApiKey<WorkoutSet>(savedProKey)
       .then((resp) => {
         const sets = resp.sets ?? [];
@@ -69,12 +67,11 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
   deps.setHevyLoginError(null);
   deps.setLoadingKind('hevy');
   deps.setIsAnalyzing(true);
-  deps.setLoadingStep(STEP.INIT);
+  deps.setLoadingStep(STEP.CONNECT);
   const startedAt = deps.startProgress();
 
   hevyBackendGetAccount(token)
     .then(({ username }) => {
-      deps.setLoadingStep(STEP.PROCESS);
       return hevyBackendGetSets<WorkoutSet>(token, username);
     })
     .then((resp) => {
@@ -110,7 +107,7 @@ export const runHevyApiKeyLogin = (deps: AppAuthHandlersDeps, apiKey: string): v
   deps.setHevyLoginError(null);
   deps.setLoadingKind('hevy');
   deps.setIsAnalyzing(true);
-  deps.setLoadingStep(STEP.INIT);
+  deps.setLoadingStep(STEP.CONNECT);
   const startedAt = deps.startProgress();
 
   hevyBackendValidateProApiKey(trimmed)
@@ -119,7 +116,6 @@ export const runHevyApiKeyLogin = (deps: AppAuthHandlersDeps, apiKey: string): v
       saveHevyProApiKey(trimmed);
       saveLastLoginMethod('hevy', 'apiKey', getHevyUsernameOrEmail() ?? undefined);
 
-      deps.setLoadingStep(STEP.PROCESS);
       return hevyBackendGetSetsWithProApiKey<WorkoutSet>(trimmed);
     })
     .then((resp) => {
@@ -148,7 +144,7 @@ export const runHevyLogin = (deps: AppAuthHandlersDeps, emailOrUsername: string,
   deps.setHevyLoginError(null);
   deps.setLoadingKind('hevy');
   deps.setIsAnalyzing(true);
-  deps.setLoadingStep(STEP.INIT);
+  deps.setLoadingStep(STEP.CONNECT);
   const startedAt = deps.startProgress();
 
   hevyBackendLogin(emailOrUsername, password)
@@ -164,7 +160,6 @@ export const runHevyLogin = (deps: AppAuthHandlersDeps, emailOrUsername: string,
       ]).then(([, { username }]) => ({ token: r.auth_token, username }));
     })
     .then(({ token, username }) => {
-      deps.setLoadingStep(STEP.PROCESS);
       return hevyBackendGetSets<WorkoutSet>(token, username);
     })
     .then((resp) => {

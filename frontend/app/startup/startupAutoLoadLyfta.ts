@@ -7,16 +7,15 @@ import { getLyfatErrorMessage } from '../ui/appErrorMessages';
 import type { StartupAutoLoadParams } from './startupAutoLoadTypes';
 import { APP_LOADING_STEPS } from '../loadingSteps';
 
-// Simple 3-step timeline
+// Simple 2-step timeline
 const STEP = APP_LOADING_STEPS;
 
 export const loadLyftaFromApiKey = (deps: StartupAutoLoadParams, apiKey: string): void => {
   deps.setLoadingKind('lyfta');
   deps.setIsAnalyzing(true);
-  deps.setLoadingStep(STEP.INIT);
+  deps.setLoadingStep(STEP.CONNECT);
   const startedAt = deps.startProgress();
 
-  deps.setLoadingStep(STEP.PROCESS);
   lyfatBackendGetSets<WorkoutSet>(apiKey)
     .then((resp) => {
       const sets = resp.sets ?? [];
