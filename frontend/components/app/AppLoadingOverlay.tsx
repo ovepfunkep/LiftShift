@@ -29,16 +29,15 @@ const LOADING_MESSAGES = [
   'Calculating display data...',
   'Rendering the interface...',
   'Final touches...',
-  'Starting cold servers (one moment)...',
   'Almost ready...',
-  'All set. Let’s train.'
+  'Just few seconds.',
+ 
 ];
-
 
 const ROW_HEIGHT = 36;
 const VISIBLE_COUNT = 4;
 const INTERVAL_MS = 400;
-const SLIDE_MS = 150;
+const SLIDE_MS = 100;
 const INITIAL_DELAY_MS = 150;
 
 const getVisibleMessages = (baseIndex: number, isCompleting: boolean) => {
@@ -85,7 +84,8 @@ export const AppLoadingOverlay: React.FC<AppLoadingOverlayProps> = ({
     const advance = () => {
       setIsAnimating(true);
       tickTimeout = window.setTimeout(() => {
-        setBaseIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+        const lastWindowStart = Math.max(0, LOADING_MESSAGES.length - VISIBLE_COUNT);
+        setBaseIndex((prev) => (prev >= lastWindowStart ? prev : prev + 1));
         setIsAnimating(false);
       }, SLIDE_MS);
     };
