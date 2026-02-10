@@ -62,18 +62,9 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
   };
 
   useEffect(() => {
-    let cancelled = false;
-    getHevyPassword()
-      .then((p) => {
-        if (cancelled) return;
-        if (passwordTouchedRef.current) return;
-        if (p) setPassword(p);
-      })
-      .catch(() => {
-      });
-    return () => {
-      cancelled = true;
-    };
+    const stored = getHevyPassword();
+    if (passwordTouchedRef.current) return;
+    if (stored) setPassword(stored);
   }, []);
 
   return (

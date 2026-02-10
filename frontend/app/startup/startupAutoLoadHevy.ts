@@ -4,18 +4,22 @@ import {
   hevyBackendGetSets,
   hevyBackendGetSetsWithProApiKey,
   hevyBackendLogin,
+  hevyBackendRefreshToken,
 } from '../../utils/api/hevyBackend';
 import { identifyPersonalRecords } from '../../utils/analysis/core';
 import {
   clearHevyAuthToken,
+  clearHevyRefreshToken,
   clearHevyProApiKey,
+  getHevyRefreshToken,
   saveHevyAuthToken,
+  saveHevyRefreshToken,
   saveLastLoginMethod,
   saveSetupComplete,
 } from '../../utils/storage/dataSourceStorage';
 import {
-  clearHevyCredentials,
   getHevyPassword,
+  getHevyUsernameOrEmail,
   saveHevyPassword,
   saveHevyUsernameOrEmail,
 } from '../../utils/storage/hevyCredentialsStorage';
@@ -74,10 +78,20 @@ export const loadHevyFromToken = (
   deps.setIsAnalyzing(true);
   const startedAt = deps.startProgress();
 
-  hevyBackendGetAccount(token)
-    .then(({ username }) => {
-      return hevyBackendGetSets<WorkoutSet>(token, username);
-    })
+  const fetchSetsWithToken = (accessToken: string) =>
+    hevyBackendGetAccount(accessToken)
+      .then(({ username }) => hevyBackendGetSets<WorkoutSet>(accessToken, username));
+
+  const attemptCredentialFallback = () => {
+    const username = getHevyUsernameOrEmail();
+    const password = getHevyPassword();
+    if (!username || !password) return Promise.reject(new Error('Missing saved credentials'));
+    return loadHevyFromCredentials(deps, username, password).then((success) => {
+      if (!success) throw new Error('Credential login failed');
+    });
+  };
+
+  fetchSetsWithToken(token)
     .then((resp) => {
       if (trackConfig) {
         trackEvent('hevy_sync_success', { method: trackConfig.successMethod, workouts: resp.meta?.workouts });
@@ -103,10 +117,50 @@ export const loadHevyFromToken = (
       if (trackConfig) {
         trackEvent('hevy_sync_error', { method: trackConfig.errorMethod });
       }
-      clearHevyAuthToken();
-      saveSetupComplete(false);
-      deps.setHevyLoginError(getHevyErrorMessage(err));
-      deps.setOnboarding({ intent: 'initial', step: 'platform' });
+      const status = (err as any)?.statusCode;
+      const refreshToken = getHevyRefreshToken();
+      if (status === 401 && refreshToken) {
+        return hevyBackendRefreshToken(refreshToken)
+          .then((refreshed) => {
+            if (!refreshed.auth_token) throw new Error('Missing auth token');
+            saveHevyAuthToken(refreshed.auth_token);
+            if (refreshed.refresh_token) saveHevyRefreshToken(refreshed.refresh_token);
+            return fetchSetsWithToken(refreshed.auth_token);
+          })
+          .then((resp) => {
+            const sets = resp.sets ?? [];
+            const hydrated = hydrateBackendWorkoutSets(sets);
+            if (hydrated.length === 0 || hydrated.every((s) => !s.parsedDate)) {
+              clearHevyAuthToken();
+              clearHevyRefreshToken();
+              saveSetupComplete(false);
+              deps.setHevyLoginError('Hevy data could not be parsed. Please try syncing again.');
+              deps.setOnboarding({ intent: 'initial', step: 'platform' });
+              return;
+            }
+
+            const enriched = identifyPersonalRecords(hydrated);
+            deps.setParsedData(enriched);
+            deps.setHevyLoginError(null);
+            deps.setCsvImportError(null);
+          })
+          .catch(() => attemptCredentialFallback())
+          .catch((refreshErr) => {
+            clearHevyAuthToken();
+            clearHevyRefreshToken();
+            saveSetupComplete(false);
+            deps.setHevyLoginError(getHevyErrorMessage(refreshErr));
+            deps.setOnboarding({ intent: 'initial', step: 'platform' });
+          });
+      }
+      attemptCredentialFallback()
+        .catch(() => {
+          clearHevyAuthToken();
+          clearHevyRefreshToken();
+          saveSetupComplete(false);
+          deps.setHevyLoginError(getHevyErrorMessage(err));
+          deps.setOnboarding({ intent: 'initial', step: 'platform' });
+        });
     })
     .finally(() => {
       deps.finishProgress(startedAt);
@@ -115,10 +169,11 @@ export const loadHevyFromToken = (
 
 export const loadHevyFromCredentials = async (
   deps: StartupAutoLoadParams,
-  username: string
+  username: string,
+  password: string
 ): Promise<boolean> => {
-  const password = await getHevyPassword();
-  if (!password) {
+  // Validate password before attempting login
+  if (!password || password.trim().length === 0) {
     return false;
   }
 
@@ -134,8 +189,9 @@ export const loadHevyFromCredentials = async (
     }
 
     saveHevyAuthToken(loginResp.auth_token);
+    if (loginResp.refresh_token) saveHevyRefreshToken(loginResp.refresh_token);
     saveHevyUsernameOrEmail(username);
-    await saveHevyPassword(password).catch(() => {});
+    saveHevyPassword(password);
     saveLastLoginMethod('hevy', 'credentials', username);
 
     const { username: accountUsername } = await hevyBackendGetAccount(loginResp.auth_token);
@@ -148,7 +204,7 @@ export const loadHevyFromCredentials = async (
 
     if (hydrated.length === 0 || hydrated.every((s) => !s.parsedDate)) {
       clearHevyAuthToken();
-      clearHevyCredentials();
+      clearHevyRefreshToken();
       saveSetupComplete(false);
       deps.setHevyLoginError('Hevy data could not be parsed. Please try syncing again.');
       deps.setOnboarding({ intent: 'initial', step: 'platform' });
@@ -165,7 +221,7 @@ export const loadHevyFromCredentials = async (
   } catch (err) {
     trackEvent('hevy_sync_error', { method: 'auto_credentials_reload' });
     clearHevyAuthToken();
-    clearHevyCredentials();
+    clearHevyRefreshToken();
     saveSetupComplete(false);
     deps.setHevyLoginError(getHevyErrorMessage(err));
     deps.setOnboarding({ intent: 'initial', step: 'platform' });

@@ -13,7 +13,8 @@ import {
   type DataSourceChoice,
   type LoginMethod,
 } from '../../utils/storage/dataSourceStorage';
-import { getHevyUsernameOrEmail } from '../../utils/storage/hevyCredentialsStorage';
+import { getHevyUsernameOrEmail, getHevyPassword } from '../../utils/storage/hevyCredentialsStorage';
+import { hevyBackendValidateAuthToken } from '../../utils/api/hevyBackend';
 
 import { loadCsvAuto } from './startupAutoLoadCsv';
 import { loadLyftaFromApiKey } from './startupAutoLoadLyfta';
@@ -47,6 +48,8 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
       params.setOnboarding({ intent: 'initial', step: 'platform' });
       return;
     }
+
+    if (params.isAnalyzing) return;
 
     // IMMEDIATELY show loading overlay before any async operations
     // This prevents showing an empty dashboard
@@ -122,30 +125,40 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
         const hevyProApiKey = getHevyProApiKey();
         const token = getHevyAuthToken();
         const username = getHevyUsernameOrEmail();
+        const password = getHevyPassword();
+        const hasCredentials = Boolean(username && password);
 
-        // Priority 1: API Key (power users)
-        if ((method === 'apiKey' || !method) && hevyProApiKey) {
+        // If user last used API key, keep that as the primary path.
+        if (method === 'apiKey' && hevyProApiKey) {
           loadHevyFromProKey(params, hevyProApiKey);
           return true;
         }
 
-        // Priority 2: Credentials (auto-relogin)
-        if ((method === 'credentials' || !method) && username) {
-          const success = await loadHevyFromCredentials(params, username);
-          if (success) return true;
-          // Credentials failed, try token as fallback
+        // Priority 1: Token if valid
+        if (token) {
+          const valid = await hevyBackendValidateAuthToken(token).catch(() => false);
+          if (valid) {
+            loadHevyFromToken(params, token, {
+              successMethod: 'saved_auth_token',
+              errorMethod: 'saved_auth_token',
+            });
+            return true;
+          }
         }
 
-        // Priority 3: Existing token
-        if (token) {
-          loadHevyFromToken(params, token, {
-            successMethod: 'saved_auth_token',
-            errorMethod: 'saved_auth_token',
-          });
+        // Priority 2: Credentials (auto-relogin)
+        if (hasCredentials && username && password) {
+          const success = await loadHevyFromCredentials(params, username, password);
+          if (success) return true;
+        }
+
+        // Priority 3: API key fallback
+        if (hevyProApiKey) {
+          loadHevyFromProKey(params, hevyProApiKey);
           return true;
         }
 
-        // Priority 4: CSV fallback
+        // Priority 5: CSV fallback
         if (storedCSV && lastCsvPlatform === 'hevy') {
           loadCsvAuto(params, {
             platform: 'hevy',

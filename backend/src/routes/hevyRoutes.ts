@@ -1,5 +1,5 @@
 import express from 'express';
-import { hevyGetAccount, hevyGetWorkoutsPaged, hevyLogin, hevyValidateAuthToken } from '../hevyApi';
+import { hevyGetAccount, hevyGetWorkoutsPaged, hevyLogin, hevyRefreshToken, hevyValidateAuthToken } from '../hevyApi';
 import { mapHevyWorkoutsToWorkoutSets } from '../mapToWorkoutSets';
 
 export const createHevyRouter = (opts: {
@@ -20,10 +20,46 @@ export const createHevyRouter = (opts: {
 
     try {
       const data = await hevyLogin(emailOrUsername, password);
-      res.json({ auth_token: data.auth_token, user_id: data.user_id, expires_at: data.expires_at });
+      // Return new OAuth2 format with access_token, refresh_token, and expires_at
+      res.json({ 
+        auth_token: data.auth_token,
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        user_id: data.user_id, 
+        expires_at: data.expires_at 
+      });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Login failed';
+      if (status === 401) {
+        return res.status(401).json({
+          error: `${message}.`,
+        });
+      }
+      res.status(status).json({ error: message });
+    }
+  });
+
+  // New endpoint: Refresh token
+  router.post('/refresh', loginLimiter, async (req, res) => {
+    const refreshToken = String(req.body?.refresh_token ?? '').trim();
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Missing refresh_token' });
+    }
+
+    try {
+      const data = await hevyRefreshToken(refreshToken);
+      res.json({ 
+        auth_token: data.auth_token,
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        user_id: data.user_id, 
+        expires_at: data.expires_at 
+      });
+    } catch (err) {
+      const status = (err as any).statusCode ?? 500;
+      const message = (err as Error).message || 'Token refresh failed';
       if (status === 401) {
         return res.status(401).json({
           error: `${message}.`,

@@ -133,10 +133,9 @@ export const AppLoadingOverlay: React.FC<AppLoadingOverlayProps> = ({
               {visibleMessages.map((msg) => (
                 <div
                   key={msg.key}
-                  className={`flex items-center space-x-3 text-sm h-[36px] transition-opacity duration-200 ease-out ${
+                  className={`flex items-center space-x-3 text-sm h-[36px] transition-opacity duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${
                     msg.state === 'completed' ? 'opacity-60' : msg.state === 'active' ? 'opacity-100' : 'opacity-40'
-                  }`}
-                >
+                  }`}>
                   {msg.state === 'completed' ? (
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                   ) : msg.state === 'active' ? (
@@ -144,7 +143,7 @@ export const AppLoadingOverlay: React.FC<AppLoadingOverlayProps> = ({
                   ) : (
                     <div className="w-5 h-5 rounded-full border-2 border-slate-700 flex-shrink-0" />
                   )}
-                  <span className={msg.state === 'pending' ? 'text-slate-600' : 'text-slate-300'}>
+                  <span className={msg.state === 'pending' ? 'text-slate-600' : 'text-slate-500'}>
                     {msg.text}
                   </span>
                 </div>

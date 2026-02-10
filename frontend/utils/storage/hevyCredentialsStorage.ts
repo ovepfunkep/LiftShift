@@ -1,5 +1,3 @@
-import { clearEncryptedCredential, getEncryptedCredential, saveEncryptedCredential } from './secureCredentialStorage';
-
 const HEVY_USERNAME_KEY = 'hevy_username_or_email';
 const HEVY_PASSWORD_KEY = 'hevy_password';
 
@@ -25,16 +23,26 @@ export const clearHevyUsernameOrEmail = (): void => {
   }
 };
 
-export const saveHevyPassword = async (password: string): Promise<void> => {
-  await saveEncryptedCredential(HEVY_PASSWORD_KEY, password);
+export const saveHevyPassword = (password: string): void => {
+  try {
+    localStorage.setItem(HEVY_PASSWORD_KEY, password);
+  } catch {
+  }
 };
 
-export const getHevyPassword = async (): Promise<string | null> => {
-  return await getEncryptedCredential(HEVY_PASSWORD_KEY);
+export const getHevyPassword = (): string | null => {
+  try {
+    return localStorage.getItem(HEVY_PASSWORD_KEY);
+  } catch {
+    return null;
+  }
 };
 
 export const clearHevyPassword = (): void => {
-  clearEncryptedCredential(HEVY_PASSWORD_KEY);
+  try {
+    localStorage.removeItem(HEVY_PASSWORD_KEY);
+  } catch {
+  }
 };
 
 export const clearHevyCredentials = (): void => {

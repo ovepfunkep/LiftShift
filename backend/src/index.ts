@@ -92,7 +92,7 @@ app.use(
       return cb(new Error('CORS blocked'), false);
     },
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['content-type', 'auth-token', 'x-liftshift-client-id'],
+    allowedHeaders: ['content-type', 'authorization', 'x-liftshift-client-id'],
     maxAge: 86400,
   })
 );
@@ -105,13 +105,19 @@ const loginLimiter = rateLimit({
 });
 
 const requireAuthTokenHeader = (req: express.Request): string => {
-  const token = req.header('auth-token');
-  if (!token) {
-    const err = new Error('Missing auth-token header');
+  const authHeader = req.header('authorization');
+  if (!authHeader) {
+    const err = new Error('Missing authorization header');
     (err as any).statusCode = 401;
     throw err;
   }
-  return token;
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    const err = new Error('Invalid authorization header');
+    (err as any).statusCode = 401;
+    throw err;
+  }
+  return match[1];
 };
 
 app.get('/api/health', (_req, res) => {

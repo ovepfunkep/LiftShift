@@ -136,6 +136,7 @@ const App: React.FC = () => {
     setLyfatLoginError: clearLyfatLoginError,
     setCsvImportError: clearCsvImportError,
     setIsAnalyzing,
+    isAnalyzing,
     setLoadingKind,
     startProgress,
     finishProgress,

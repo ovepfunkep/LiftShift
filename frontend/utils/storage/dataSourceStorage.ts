@@ -26,7 +26,7 @@ export const saveDataSourceChoice = (choice: DataSourceChoice): void => dataSour
 export const getDataSourceChoice = (): DataSourceChoice | null => dataSourceStorage.get();
 export const clearDataSourceChoice = (): void => dataSourceStorage.clear();
 
-// Hevy Auth Token
+// Hevy Auth Token (access_token)
 const hevyAuthTokenStorage = createStorageManager<string | null>({
   key: 'hevy_auth_token',
   defaultValue: null,
@@ -36,6 +36,17 @@ const hevyAuthTokenStorage = createStorageManager<string | null>({
 export const saveHevyAuthToken = (token: string): void => hevyAuthTokenStorage.set(token);
 export const getHevyAuthToken = (): string | null => hevyAuthTokenStorage.get();
 export const clearHevyAuthToken = (): void => hevyAuthTokenStorage.clear();
+
+// Hevy Refresh Token
+const hevyRefreshTokenStorage = createStorageManager<string | null>({
+  key: 'hevy_refresh_token',
+  defaultValue: null,
+  validator: (v) => v,
+});
+
+export const saveHevyRefreshToken = (token: string): void => hevyRefreshTokenStorage.set(token);
+export const getHevyRefreshToken = (): string | null => hevyRefreshTokenStorage.get();
+export const clearHevyRefreshToken = (): void => hevyRefreshTokenStorage.clear();
 
 // Hevy Pro API Key
 const hevyProApiKeyStorage = createStorageManager<string | null>({

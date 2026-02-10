@@ -113,8 +113,11 @@ export function useAppAuth({
     [handlerDeps]
   );
   const handleHevyLogin = useCallback(
-    (emailOrUsername: string, password: string) => runHevyLogin(handlerDeps, emailOrUsername, password),
-    [handlerDeps]
+    (emailOrUsername: string, password: string) => {
+      if (isAnalyzing) return;
+      runHevyLogin(handlerDeps, emailOrUsername, password);
+    },
+    [handlerDeps, isAnalyzing]
   );
   const handleLyfatSyncSaved = useCallback(() => runLyfatSyncSaved(handlerDeps), [handlerDeps]);
   const handleLyfatLogin = useCallback((apiKey: string) => runLyfatLogin(handlerDeps, apiKey), [handlerDeps]);
