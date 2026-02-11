@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BodyMap } from '../../bodyMap/BodyMap';
 import { ExerciseThumbnail } from '../../common/ExerciseThumbnail';
 import { getExerciseMuscleVolumes, lookupExerciseMuscleData, toHeadlessVolumeMap, type ExerciseMuscleData } from '../../../utils/muscle/mapping';
 import type { ExerciseAsset } from '../../../utils/data/exerciseAssets';
+import { ChevronDown } from 'lucide-react';
 
 interface MuscleAnalysisExerciseListProps {
   contributingExercises: Array<{ name: string; sets: number; primarySets: number; secondarySets: number }>;
@@ -12,6 +13,9 @@ interface MuscleAnalysisExerciseListProps {
   onExerciseClick?: (exerciseName: string) => void;
 }
 
+const INITIAL_DISPLAY_COUNT = 10;
+const LAZY_LOAD_INCREMENT = 10;
+
 export const MuscleAnalysisExerciseList: React.FC<MuscleAnalysisExerciseListProps> = ({
   contributingExercises,
   assetsMap,
@@ -19,10 +23,18 @@ export const MuscleAnalysisExerciseList: React.FC<MuscleAnalysisExerciseListProp
   totalSetsInWindow,
   onExerciseClick,
 }) => {
+  const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
+  const displayedExercises = contributingExercises.slice(0, displayCount);
+  const hasMore = displayCount < contributingExercises.length;
+
+  const handleShowMore = () => {
+    setDisplayCount(prev => Math.min(prev + LAZY_LOAD_INCREMENT, contributingExercises.length));
+  };
+
   return (
-    <div className="overflow-y-auto flex-1 px-4 mt-2 scroll-smooth">
+    <div className="px-4 mt-2 scroll-smooth overflow-y-auto h-full">
       <div className="space-y-2 pb-4">
-        {contributingExercises.map((ex) => {
+        {displayedExercises.map((ex) => {
           const asset = assetsMap?.get(ex.name);
           const exData = lookupExerciseMuscleData(ex.name, exerciseMuscleData);
           const { volumes: exVolumes, maxVolume: exMaxVol } = getExerciseMuscleVolumes(exData);
@@ -108,6 +120,16 @@ export const MuscleAnalysisExerciseList: React.FC<MuscleAnalysisExerciseListProp
           <div className="text-center text-slate-500 py-4">
             No exercises found
           </div>
+        )}
+        {hasMore && (
+          <button
+            onClick={handleShowMore}
+            className="w-full py-2 flex items-center justify-center gap-1 text-xs text-slate-400 hover:text-white transition-colors border border-dashed border-slate-700 rounded-lg hover:border-slate-500"
+          >
+            <ChevronDown className="w-3 h-3" />
+            Show {Math.min(LAZY_LOAD_INCREMENT, contributingExercises.length - displayCount)} more
+            <span className="text-slate-600">({contributingExercises.length - displayCount} remaining)</span>
+          </button>
         )}
       </div>
     </div>

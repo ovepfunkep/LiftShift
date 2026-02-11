@@ -156,7 +156,9 @@ export const BodyMap: React.FC<BodyMapProps> = ({
     };
   }, [applyColors, handleClick, handleMouseOver, handleMouseOut, compact, interactive]);
 
-  const svgClass = compact ? (compactFill ? 'h-full w-auto' : 'h-28 w-auto') : 'h-[60vh] md:h-[70vh] w-auto -mb-10 -mt-5 sm:-mb-3';
+  const svgClass = compact 
+    ? (compactFill ? 'h-full w-auto' : 'h-28 w-auto') 
+    : 'h-[45vh] sm:h-[50vh] md:h-[55vh] lg:h-[60vh] xl:h-[65vh] w-auto max-h-[500px]';
 
   const FrontSvg = gender === 'female' 
     ? (viewMode === 'group' || viewMode === 'headless' ? FemaleFrontBodyMapGroup : FemaleFrontBodyMapMuscle)

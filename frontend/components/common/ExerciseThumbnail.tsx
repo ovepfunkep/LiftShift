@@ -103,7 +103,8 @@ export const ExerciseThumbnail: React.FC<ExerciseThumbnailProps> = ({
                     muted
                     loop
                     playsInline
-                    preload="none" // Controlled by observer
+                    autoPlay
+                    preload="metadata"
                 />
             </div>
         );

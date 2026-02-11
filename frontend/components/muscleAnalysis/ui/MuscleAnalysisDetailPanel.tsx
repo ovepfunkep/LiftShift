@@ -13,6 +13,8 @@ import type { QuickFilterCategory } from '../hooks/useMuscleSelection';
 import type { ExerciseAsset } from '../../../utils/data/exerciseAssets';
 import type { ExerciseMuscleData } from '../../../utils/muscle/mapping';
 import { MuscleAnalysisExerciseList } from './MuscleAnalysisExerciseList';
+import { LifetimeAchievementCard } from './LifetimeAchievementCard';
+import type { LifetimeAchievementData } from '../hooks/useLifetimeAchievement';
 
 interface MuscleAnalysisDetailPanelProps {
   activeQuickFilter: QuickFilterCategory | null;
@@ -28,6 +30,7 @@ interface MuscleAnalysisDetailPanelProps {
   exerciseMuscleData: Map<string, ExerciseMuscleData>;
   onExerciseClick?: (exerciseName: string) => void;
   clearSelection: () => void;
+  lifetimeAchievement: LifetimeAchievementData | null;
 }
 
 export const MuscleAnalysisDetailPanel: React.FC<MuscleAnalysisDetailPanelProps> = ({
@@ -44,6 +47,7 @@ export const MuscleAnalysisDetailPanel: React.FC<MuscleAnalysisDetailPanelProps>
   exerciseMuscleData,
   onExerciseClick,
   clearSelection,
+  lifetimeAchievement,
 }) => {
   const title = activeQuickFilter
     ? QUICK_FILTER_LABELS[activeQuickFilter]
@@ -58,8 +62,8 @@ export const MuscleAnalysisDetailPanel: React.FC<MuscleAnalysisDetailPanelProps>
   const totalSetsInWindow = windowedSelectionBreakdown?.totalSetsInWindow ?? 0;
 
   return (
-    <div className="bg-black/70 rounded-xl border border-slate-700/50 overflow-hidden flex flex-col h-[70vh] lg:h-0 lg:min-h-full">
-      <div className="bg-black/70 border-b border-slate-800/50 p-3 flex items-center justify-between">
+    <div data-muscle-detail-panel className="bg-black/70 rounded-xl border border-slate-700/50 overflow-hidden flex flex-col">
+      <div className="bg-black/70  p-3 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
           <h2 className="text-lg font-bold text-white truncate">{title}</h2>
           <span
@@ -153,13 +157,26 @@ export const MuscleAnalysisDetailPanel: React.FC<MuscleAnalysisDetailPanelProps>
 
       {windowedSelectionBreakdown && (
         <div className="border-t border-slate-800/30 flex-1 flex flex-col min-h-0">
-          <MuscleAnalysisExerciseList
-            contributingExercises={contributingExercises}
-            assetsMap={assetsMap}
-            exerciseMuscleData={exerciseMuscleData}
-            totalSetsInWindow={totalSetsInWindow}
-            onExerciseClick={onExerciseClick}
-          />
+          <div className={`flex-1 flex flex-col min-h-0 ${lifetimeAchievement ? 'min-h-[120px] lg:min-h-0 lg:max-h-[35%]' : ''}`}>
+            <MuscleAnalysisExerciseList
+              contributingExercises={contributingExercises}
+              assetsMap={assetsMap}
+              exerciseMuscleData={exerciseMuscleData}
+              totalSetsInWindow={totalSetsInWindow}
+              onExerciseClick={onExerciseClick}
+            />
+          </div>
+          {lifetimeAchievement && (
+            <div className="border-t border-slate-800/30 p-3 flex-shrink-0">
+              <LifetimeAchievementCard data={lifetimeAchievement} selectedMuscleId={selectedMuscle} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {!windowedSelectionBreakdown && lifetimeAchievement && (
+        <div className="border-t border-slate-800/30 p-3 flex-1">
+          <LifetimeAchievementCard data={lifetimeAchievement} selectedMuscleId={selectedMuscle} />
         </div>
       )}
     </div>

@@ -17,7 +17,6 @@ import type { WeeklySetsWindow } from '../../../utils/muscle/analytics';
 import type { QuickFilterCategory } from '../hooks/useMuscleSelection';
 
 interface MuscleAnalysisBodyMapPanelProps {
-  viewMode: 'muscle' | 'group' | 'headless';
   bodyMapGender: BodyMapGender;
   activeQuickFilter: QuickFilterCategory | null;
   onQuickFilterClick: (value: QuickFilterCategory) => void;
@@ -26,11 +25,9 @@ interface MuscleAnalysisBodyMapPanelProps {
   weeklySetsWindow: WeeklySetsWindow;
   setWeeklySetsWindow: (value: WeeklySetsWindow) => void;
   selectedSvgIdForUrlRef: React.MutableRefObject<string | null>;
-  updateSelectionUrl: (payload: { svgId: string; mode: 'muscle' | 'group' | 'headless'; window: WeeklySetsWindow }) => void;
+  updateSelectionUrl: (payload: { svgId: string; mode: 'headless'; window: WeeklySetsWindow }) => void;
   muscleVolumes: Map<string, number>;
   maxVolume: number;
-  groupedBodyMapVolumes: Map<string, number>;
-  maxGroupVolume: number;
   selectedMuscle: string | null;
   selectedBodyMapIds?: string[];
   hoveredBodyMapIds?: string[];
@@ -41,7 +38,6 @@ interface MuscleAnalysisBodyMapPanelProps {
 }
 
 export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProps> = ({
-  viewMode,
   bodyMapGender,
   activeQuickFilter,
   weeklySetsChartView,
@@ -52,8 +48,6 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
   updateSelectionUrl,
   muscleVolumes,
   maxVolume,
-  groupedBodyMapVolumes,
-  maxGroupVolume,
   selectedMuscle,
   selectedBodyMapIds,
   hoveredBodyMapIds,
@@ -63,8 +57,21 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
   radarData,
   hoverTooltip,
 }) => {
+  const handleClick = (muscleId: string) => {
+    handleMuscleClick(muscleId);
+    // Scroll to graph on mobile/tablet (< 1024px)
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setTimeout(() => {
+        const target = document.getElementById('all-muscles-graph');
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    }
+  };
+
   return (
-    <div className="bg-black/70 rounded-xl border border-slate-700/50 p-4 relative flex flex-col min-h-0">
+    <div className="bg-black/70 rounded-xl border border-slate-700/50 p-4 relative flex flex-col h-full overflow-hidden">
       <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1 bg-black/70 rounded-lg p-1 shadow-lg">
           {(['PUS', 'PUL', 'LEG'] as const).map((filter) => (
@@ -109,7 +116,7 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
                 setWeeklySetsWindow(w);
                 const svgId = selectedSvgIdForUrlRef.current;
                 if (!svgId) return;
-                updateSelectionUrl({ svgId, mode: viewMode, window: w });
+                updateSelectionUrl({ svgId, mode: 'headless', window: w });
               }}
               className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-all ${weeklySetsWindow === w
                 ? 'bg-red-600 text-white'
@@ -124,7 +131,7 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
       </div>
 
       {weeklySetsChartView === 'radar' ? (
-        <div className="flex-1 flex flex-col items-center justify-center min-h-0 pt-10">
+        <div className="flex-1 flex flex-col items-center justify-center h-full pt-10">
           {radarData.some((d) => (d.value ?? 0) > 0) ? (
             <div className="w-full min-h-[280px] flex items-center justify-center">
               <ResponsiveContainer width="100%" height={280}>
@@ -172,31 +179,29 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
           )}
         </div>
       ) : (
-        <div className="flex-1 flex flex-col min-h-0 pt-10">
-          <div className="sm:transform sm:scale-[0.8] sm:origin-middle">
+        <div className="flex-1 flex flex-col h-full pt-10">
+          <div className="flex-1 h-full overflow-hidden flex items-center justify-center pb-8">
             <BodyMap
-              onPartClick={handleMuscleClick}
+              onPartClick={handleClick}
               selectedPart={selectedMuscle}
               selectedMuscleIdsOverride={selectedBodyMapIds}
               hoveredMuscleIdsOverride={hoveredBodyMapIds}
-              muscleVolumes={viewMode === 'group' ? groupedBodyMapVolumes : muscleVolumes}
-              maxVolume={viewMode === 'group' ? maxGroupVolume : maxVolume}
+              muscleVolumes={muscleVolumes}
+              maxVolume={maxVolume}
               onPartHover={handleMuscleHover}
               gender={bodyMapGender}
-              viewMode={viewMode}
+              viewMode="headless"
             />
           </div>
 
-          <div className="sm:hidden mb-10 text-center text-[11px] font-semibold text-slate-600">
+          <div className="sm:hidden mb-6 text-center text-[11px] font-semibold text-slate-600">
             Tap to see more details
           </div>
-
-          <div className="hidden sm:block text-center text-[11px] text-slate-500 mt-2 mb-8">
-            Hover over muscles to preview, click to view exercises
-          </div>
-
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
-            <div className="flex items-center gap-3 text-xs text-slate-400 bg-slate-950/75 rounded-lg px-3 py-1.5">
+          <div className="mt-auto flex flex-col items-center justify-center gap-2 pb-1 w-full">
+            <div className="hidden sm:block text-center text-[11px] text-slate-500">
+              Hover over muscles to preview, click to view exercises
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-400 bg-slate-950/75 rounded-lg px-3 py-1.5 max-w-full">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-2 rounded" style={{ backgroundColor: '#ffffff' }}></div>
                 <span>None</span>
@@ -215,6 +220,7 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
               </div>
             </div>
           </div>
+          
         </div>
       )}
 

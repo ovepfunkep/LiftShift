@@ -121,7 +121,17 @@ const requireAuthTokenHeader = (req: express.Request): string => {
 };
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  const memUsage = process.memoryUsage();
+  res.json({
+    status: 'ok',
+    memory: {
+      heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+      heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+      rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+      external: `${Math.round(memUsage.external / 1024 / 1024)}MB`,
+    },
+    uptime: process.uptime(),
+  });
 });
 
 app.use('/api/hevy', createHevyRouter({ loginLimiter, requireAuthTokenHeader, getCachedResponse }));
@@ -140,10 +150,29 @@ app.listen(PORT, () => {
   console.log(`LiftShift backend listening on :${PORT}`);
 });
 
-const shutdown = async () => {
-  await shutdownPosthog();
+const shutdown = async (signal: string) => {
+  console.log(`[Server] Received ${signal}, shutting down gracefully...`);
+  
+  try {
+    await shutdownPosthog();
+    console.log('[Server] PostHog shutdown complete');
+  } catch (err) {
+    console.error('[Server] Error during PostHog shutdown:', err);
+  }
+  
+  console.log('[Server] Graceful shutdown complete');
   process.exit(0);
 };
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('[Server] Uncaught Exception:', err);
+  shutdown('uncaughtException').catch(() => process.exit(1));
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Server] Unhandled Rejection at:', promise, 'reason:', reason);
+});

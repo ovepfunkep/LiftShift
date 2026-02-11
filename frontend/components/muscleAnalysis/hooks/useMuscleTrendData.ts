@@ -10,6 +10,8 @@ import { computeWindowedExerciseBreakdown } from '../../../utils/muscle/volume';
 import { isWarmupSet } from '../../../utils/analysis/classification';
 import type { NormalizedMuscleGroup } from '../../../utils/muscle/analytics';
 import type { ExerciseAsset } from '../../../utils/data/exerciseAssets';
+import { computationCache } from '../../../utils/storage/computationCache';
+import { muscleCacheKeys } from '../../../utils/storage/cacheKeys';
 
 interface UseMuscleTrendDataParams {
   data: WorkoutSet[];
@@ -25,6 +27,7 @@ interface UseMuscleTrendDataParams {
   muscleVolume: Map<string, { sets: number }>;
   windowedGroupVolumes: Map<NormalizedMuscleGroup, number>;
   muscleVolumes: Map<string, number>;
+  filterCacheKey: string;
 }
 
 export const useMuscleTrendData = ({
@@ -41,6 +44,7 @@ export const useMuscleTrendData = ({
   muscleVolume,
   windowedGroupVolumes,
   muscleVolumes,
+  filterCacheKey,
 }: UseMuscleTrendDataParams) => {
   const weeklySetsSummary = useMemo(() => {
     if (viewMode === 'headless') {
@@ -81,95 +85,126 @@ export const useMuscleTrendData = ({
 
   const trendData = useMemo(() => {
     if (!assetsMap || data.length === 0) return [];
-    if (!windowStart) return [];
 
-    const isGroupMode = viewMode === 'group';
-    const isAll = weeklySetsWindow === 'all';
+    // Create a hash of selected keys for cache key
+    const selectedKeysHash = selectedSubjectKeys.sort().join(',') || 'all';
+    const cacheKey = muscleCacheKeys.trendData(filterCacheKey, weeklySetsWindow, viewMode, selectedKeysHash);
 
-    let chartPeriod: 'weekly' | 'monthly' = 'weekly';
-    let shouldBucketToWeeks = false;
+    return computationCache.getOrCompute(
+      cacheKey,
+      data,
+      () => {
+        const isGroupMode = viewMode === 'group';
+        const isAll = weeklySetsWindow === 'all';
 
-    if (isAll) {
-      const spanDays = Math.max(1, differenceInCalendarDays(effectiveNow, windowStart) + 1);
-      if (spanDays < 35) {
-        chartPeriod = 'weekly';
-      } else if (spanDays < 150) {
-        chartPeriod = 'weekly';
-        shouldBucketToWeeks = true;
-      } else {
-        chartPeriod = 'monthly';
-      }
-    } else if (weeklySetsWindow === '365d') {
-      chartPeriod = 'weekly';
-      shouldBucketToWeeks = true;
-    } else {
-      chartPeriod = 'weekly';
-    }
+        let chartPeriod: 'weekly' | 'monthly' = 'weekly';
+        let shouldBucketToWeeks = false;
 
-    const baseSeries = isGroupMode
-      ? getMuscleVolumeTimeSeriesRolling(data, assetsMap, chartPeriod, true)
-      : getSvgMuscleVolumeTimeSeriesRolling(data, assetsMap, chartPeriod);
-
-    const series = shouldBucketToWeeks
-      ? bucketRollingWeeklySeriesToWeeks(baseSeries as any)
-      : baseSeries;
-
-    if (!series.data || series.data.length === 0) return [];
-
-    const filtered = series.data.filter((row: any) => {
-      const ts = typeof row.timestamp === 'number' ? row.timestamp : 0;
-      if (!ts) return false;
-      return ts >= windowStart.getTime() && ts <= effectiveNow.getTime();
-    });
-
-    const keys = selectedSubjectKeys;
-
-    return filtered.map((row: any) => {
-      const sumAll = () => (baseSeries.keys || []).reduce((acc, k) => acc + (typeof row[k] === 'number' ? row[k] : 0), 0);
-
-      const sumHeadlessSelected = () => {
-        if (keys.length === 0) return sumAll();
-        let acc = 0;
-        for (const headlessId of keys) {
-          const detailed = (HEADLESS_ID_TO_DETAILED_SVG_IDS as any)[headlessId] as readonly string[] | undefined;
-          if (!detailed) continue;
-          for (const d of detailed) acc += (typeof row[d] === 'number' ? (row[d] as number) : 0);
+        if (isAll) {
+          const spanDays = windowStart
+            ? Math.max(1, differenceInCalendarDays(effectiveNow, windowStart) + 1)
+            : 30;
+          if (spanDays < 35) {
+            chartPeriod = 'weekly';
+          } else if (spanDays < 150) {
+            chartPeriod = 'weekly';
+            shouldBucketToWeeks = true;
+          } else {
+            chartPeriod = 'monthly';
+          }
+        } else if (weeklySetsWindow === '365d') {
+          chartPeriod = 'weekly';
+          shouldBucketToWeeks = true;
+        } else {
+          chartPeriod = 'weekly';
         }
-        return acc;
-      };
 
-      const v = viewMode === 'headless'
-        ? sumHeadlessSelected()
-        : keys.length > 0
-          ? keys.reduce((acc, k) => acc + (typeof row[k] === 'number' ? row[k] : 0), 0)
-          : sumAll();
-      return {
-        period: row.dateFormatted,
-        timestamp: row.timestamp,
-        sets: Math.round(Number(v) * 10) / 10,
-      };
-    });
-  }, [assetsMap, data, windowStart, effectiveNow, weeklySetsWindow, viewMode, selectedSubjectKeys]);
+        const baseSeries = isGroupMode
+          ? getMuscleVolumeTimeSeriesRolling(data, assetsMap, chartPeriod, true)
+          : getSvgMuscleVolumeTimeSeriesRolling(data, assetsMap, chartPeriod);
+
+        const series = shouldBucketToWeeks
+          ? bucketRollingWeeklySeriesToWeeks(baseSeries as any)
+          : baseSeries;
+
+        if (!series.data || series.data.length === 0) return [];
+
+        const filtered = windowStart
+          ? series.data.filter((row: any) => {
+            const ts = typeof row.timestamp === 'number' ? row.timestamp : 0;
+            if (!ts) return false;
+            return ts >= windowStart.getTime() && ts <= effectiveNow.getTime();
+          })
+          : series.data;
+
+        const keys = selectedSubjectKeys;
+
+        const dataForChart = filtered.length > 0 ? filtered : series.data;
+
+        return dataForChart.map((row: any) => {
+          const sumAll = () => (baseSeries.keys || []).reduce((acc, k) => acc + (typeof row[k] === 'number' ? row[k] : 0), 0);
+
+          const sumHeadlessSelected = () => {
+            if (keys.length === 0) return sumAll();
+            let acc = 0;
+            for (const headlessId of keys) {
+              const detailed = (HEADLESS_ID_TO_DETAILED_SVG_IDS as any)[headlessId] as readonly string[] | undefined;
+              if (!detailed) continue;
+              for (const d of detailed) acc += (typeof row[d] === 'number' ? (row[d] as number) : 0);
+            }
+            return acc;
+          };
+
+          const v = viewMode === 'headless'
+            ? sumHeadlessSelected()
+            : keys.length > 0
+              ? keys.reduce((acc, k) => acc + (typeof row[k] === 'number' ? row[k] : 0), 0)
+              : sumAll();
+          return {
+            period: row.dateFormatted,
+            timestamp: row.timestamp,
+            sets: Math.round(Number(v) * 10) / 10,
+          };
+        });
+      },
+      { ttl: 10 * 60 * 1000 }
+    );
+  }, [assetsMap, data, windowStart, effectiveNow, weeklySetsWindow, viewMode, selectedSubjectKeys, filterCacheKey]);
 
   const windowedSelectionBreakdown = useMemo(() => {
     if (!assetsMap || !windowStart) return null;
 
-    const grouping = viewMode === 'group' ? 'groups' : 'muscles';
+    const selectedKeysHash = selectedSubjectKeys.sort().join(',') || 'all';
+    const cacheKey = muscleCacheKeys.exerciseBreakdown(
+      filterCacheKey,
+      windowStart.getTime(),
+      viewMode,
+      selectedKeysHash
+    );
 
-    const selectedForBreakdown =
-      viewMode === 'headless'
-        ? selectedSubjectKeys.flatMap((h) => (HEADLESS_ID_TO_DETAILED_SVG_IDS as any)[h] ?? [])
-        : selectedSubjectKeys;
-
-    return computeWindowedExerciseBreakdown({
+    return computationCache.getOrCompute(
+      cacheKey,
       data,
-      assetsMap,
-      start: windowStart,
-      end: effectiveNow,
-      grouping,
-      selectedSubjects: selectedForBreakdown,
-    });
-  }, [assetsMap, windowStart, effectiveNow, viewMode, selectedSubjectKeys, data]);
+      () => {
+        const grouping = viewMode === 'group' ? 'groups' : 'muscles';
+
+        const selectedForBreakdown =
+          viewMode === 'headless'
+            ? selectedSubjectKeys.flatMap((h) => (HEADLESS_ID_TO_DETAILED_SVG_IDS as any)[h] ?? [])
+            : selectedSubjectKeys;
+
+        return computeWindowedExerciseBreakdown({
+          data,
+          assetsMap,
+          start: windowStart,
+          end: effectiveNow,
+          grouping,
+          selectedSubjects: selectedForBreakdown,
+        });
+      },
+      { ttl: 10 * 60 * 1000 }
+    );
+  }, [assetsMap, windowStart, effectiveNow, viewMode, selectedSubjectKeys, data, filterCacheKey]);
 
   const contributingExercises = useMemo(() => {
     if (!windowedSelectionBreakdown) return [];
@@ -177,7 +212,7 @@ export const useMuscleTrendData = ({
     windowedSelectionBreakdown.exercises.forEach((exData, name) => {
       exercises.push({ name, ...exData });
     });
-    return exercises.sort((a, b) => b.sets - a.sets).slice(0, 8);
+    return exercises.sort((a, b) => b.sets - a.sets);
   }, [windowedSelectionBreakdown]);
 
   const totalSets = useMemo(() => {

@@ -10,6 +10,7 @@ import {
   getHeadlessIdForDetailedSvgId,
   HEADLESS_MUSCLE_NAMES,
 } from '../../../utils/muscle/mapping';
+import { weeklyStimulus } from '../../../utils/muscle/hypertrophy';
 import type { TooltipData } from '../../ui/Tooltip';
 import type { WeeklySetsWindow } from '../../../utils/muscle/analytics';
 import type { QuickFilterCategory } from './useMuscleSelection';
@@ -47,6 +48,8 @@ export const useMuscleAnalysisHandlers = ({
 
   const handleMuscleClick = useCallback((muscleId: string) => {
     setActiveQuickFilter(null);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+    
     if (viewMode === 'group') {
       const group = getGroupForSvgId(muscleId);
       if (group === 'Other') return;
@@ -58,6 +61,13 @@ export const useMuscleAnalysisHandlers = ({
         } else {
           selectedSvgIdForUrlRef.current = muscleId;
           updateSelectionUrl({ svgId: muscleId, mode: 'group', window: weeklySetsWindow });
+          // Scroll to detail panel on mobile after selection
+          if (isMobile) {
+            setTimeout(() => {
+              const detailPanel = document.querySelector('[data-muscle-detail-panel]');
+              detailPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
+          }
         }
         return next;
       });
@@ -70,6 +80,13 @@ export const useMuscleAnalysisHandlers = ({
         } else {
           selectedSvgIdForUrlRef.current = muscleId;
           updateSelectionUrl({ svgId: muscleId, mode: 'headless', window: weeklySetsWindow });
+          // Scroll to detail panel on mobile after selection
+          if (isMobile) {
+            setTimeout(() => {
+              const detailPanel = document.querySelector('[data-muscle-detail-panel]');
+              detailPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
+          }
         }
         return next;
       });
@@ -82,6 +99,13 @@ export const useMuscleAnalysisHandlers = ({
         } else {
           selectedSvgIdForUrlRef.current = muscleId;
           updateSelectionUrl({ svgId: muscleId, mode: 'muscle', window: weeklySetsWindow });
+          // Scroll to detail panel on mobile after selection
+          if (isMobile) {
+            setTimeout(() => {
+              const detailPanel = document.querySelector('[data-muscle-detail-panel]');
+              detailPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
+          }
         }
         return next;
       });
@@ -111,10 +135,11 @@ export const useMuscleAnalysisHandlers = ({
       }
 
       const sets = windowedGroupVolumes.get(groupName as any) || 0;
+      const stimulus = weeklyStimulus(sets);
       setHoverTooltip({
         rect,
         title: groupName,
-        body: `${Math.round(sets * 10) / 10} sets`,
+        body: `${Math.round(sets * 10) / 10} sets/wk\n${stimulus}% of wkly possible gains`,
         status: sets > 0 ? 'success' : 'default',
       });
       return;
@@ -122,7 +147,8 @@ export const useMuscleAnalysisHandlers = ({
 
     if (viewMode === 'headless') {
       const rate = headlessRatesMap.get(muscleId) || 0;
-      const bodyText = `${rate.toFixed(1)} sets/wk`;
+      const stimulus = weeklyStimulus(rate, muscleId);
+      const bodyText = `${rate.toFixed(1)} sets/wk\n${stimulus}% of wkly possible gains`;
 
       setHoverTooltip({
         rect,
@@ -134,10 +160,12 @@ export const useMuscleAnalysisHandlers = ({
     }
 
     const sets = headlessRatesMap.get(muscleId) || 0;
+    const headlessId = getHeadlessIdForDetailedSvgId(muscleId) ?? undefined;
+    const stimulus = weeklyStimulus(sets, headlessId);
     setHoverTooltip({
       rect,
       title: SVG_MUSCLE_NAMES[muscleId] ?? muscleId,
-      body: `${sets.toFixed(1)} sets/wk`,
+      body: `${sets.toFixed(1)} sets/wk\n${stimulus}% of wkly possible gains `,
       status: sets > 0 ? 'success' : 'default',
     });
   }, [windowedGroupVolumes, headlessRatesMap, viewMode, setHoverTooltip]);

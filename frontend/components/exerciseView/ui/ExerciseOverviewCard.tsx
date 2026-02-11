@@ -29,80 +29,81 @@ export const ExerciseOverviewCard: React.FC<ExerciseOverviewCardProps> = ({
   onBodyMapHover,
 }) => {
   return (
-    <div className="inline-flex items-start gap-4 shrink-0 bg-white rounded-xl p-3 self-start w-fit max-w-full">
-      <div className="flex items-start gap-3">
-        <div className="w-24 h-20 flex items-center justify-center rounded-lg relative">
-          <BodyMap
-            onPartClick={() => { }}
-            selectedPart={null}
-            muscleVolumes={selectedExerciseHeadlessVolumes}
-            maxVolume={selectedExerciseHeadlessMaxVolume}
-            compact
-            interactive
-            gender={bodyMapGender}
-            viewMode="headless"
-            onPartHover={(muscleId) => onBodyMapHover(muscleId)}
-          />
+    <div className="flex items-center gap-3 shrink-0 rounded-xl p-3 w-full lg:w-fit lg:self-start max-w-full">
+      {/* BodyMap - Left side, fixed size */}
+      <div className="w-24 h-20 flex items-center justify-center rounded-lg relative flex-none">
+        <BodyMap
+          onPartClick={() => { }}
+          selectedPart={null}
+          muscleVolumes={selectedExerciseHeadlessVolumes}
+          maxVolume={selectedExerciseHeadlessMaxVolume}
+          compact
+          interactive
+          gender={bodyMapGender}
+          viewMode="headless"
+          onPartHover={(muscleId) => onBodyMapHover(muscleId)}
+        />
 
-          {exerciseBodyMapHoverMeta && (
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 border border-slate-700/50 rounded-md px-2 py-1 shadow-xl pointer-events-none z-20">
-              <div className="font-semibold text-[10px] text-center whitespace-nowrap text-white">
-                {exerciseBodyMapHoverMeta.name}
-              </div>
-              {exerciseBodyMapHoverMeta.role ? (
-                <div className="text-[9px] text-center font-semibold whitespace-nowrap text-slate-200">
-                  {exerciseBodyMapHoverMeta.role}
-                </div>
-              ) : null}
+        {exerciseBodyMapHoverMeta && (
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 border border-slate-700/50 rounded-md px-2 py-1 shadow-xl pointer-events-none z-20">
+            <div className="font-semibold text-[10px] text-center whitespace-nowrap text-white">
+              {exerciseBodyMapHoverMeta.name}
             </div>
-          )}
-        </div>
-
-        {(selectedExerciseMuscleInfo.primaryTargets.length > 0 || selectedExerciseMuscleInfo.secondaryTargets.length > 0) && (
-          <div className="space-y-2 min-w-0 max-w-[220px]">
-            {selectedExerciseMuscleInfo.primaryTargets.length > 0 && (
-              <div>
-                <div className="text-[10px] uppercase tracking-wide text-slate-700">Primary</div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {selectedExerciseMuscleInfo.primaryTargets.map((t) => (
-                    <span
-                      key={`primary-${t.label}`}
-                      className="px-2 py-0.5 rounded-md text-[10px] font-semibold border border-slate-900/10"
-                      style={{
-                        backgroundColor: getVolumeColor(t.sets, selectedExerciseMuscleInfo.maxVolume),
-                        color: getTargetTextColor(t.sets, selectedExerciseMuscleInfo.maxVolume),
-                      }}
-                    >
-                      {t.label}
-                    </span>
-                  ))}
-                </div>
+            {exerciseBodyMapHoverMeta.role ? (
+              <div className="text-[9px] text-center font-semibold whitespace-nowrap text-slate-200">
+                {exerciseBodyMapHoverMeta.role}
               </div>
-            )}
-
-            {selectedExerciseMuscleInfo.secondaryTargets.length > 0 && (
-              <div>
-                <div className="text-[10px] uppercase tracking-wide text-slate-700">Secondary</div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {selectedExerciseMuscleInfo.secondaryTargets.map((t) => (
-                    <span
-                      key={`secondary-${t.label}`}
-                      className="px-2 py-0.5 rounded-md text-[10px] font-semibold border border-slate-900/10"
-                      style={{
-                        backgroundColor: getVolumeColor(t.sets, selectedExerciseMuscleInfo.maxVolume),
-                        color: '#ffffff',
-                      }}
-                    >
-                      {t.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>
 
+      {/* Middle content - Flexible width */}
+      {(selectedExerciseMuscleInfo.primaryTargets.length > 0 || selectedExerciseMuscleInfo.secondaryTargets.length > 0) && (
+        <div className="flex-1 flex flex-col items-center justify-center min-w-0 text-center">
+          {selectedExerciseMuscleInfo.primaryTargets.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-700">Primary</div>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {selectedExerciseMuscleInfo.primaryTargets.map((t) => (
+                  <span
+                    key={`primary-${t.label}`}
+                    className="px-2 py-0.5 rounded-md text-[10px] font-semibold border border-slate-900/10"
+                    style={{
+                      backgroundColor: getVolumeColor(t.sets, selectedExerciseMuscleInfo.maxVolume),
+                      color: getTargetTextColor(t.sets, selectedExerciseMuscleInfo.maxVolume),
+                    }}
+                  >
+                    {t.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedExerciseMuscleInfo.secondaryTargets.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-700">Secondary</div>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {selectedExerciseMuscleInfo.secondaryTargets.map((t) => (
+                  <span
+                    key={`secondary-${t.label}`}
+                    className="px-2 py-0.5 rounded-md text-[10px] font-semibold border border-slate-900/10"
+                    style={{
+                      backgroundColor: getVolumeColor(t.sets, selectedExerciseMuscleInfo.maxVolume),
+                      color: '#ffffff',
+                    }}
+                  >
+                    {t.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Video - Right side, fixed size */}
       {assetLookup && (() => {
         const a = assetLookup.getAsset(selectedStats.name);
         if (!a) return null;
