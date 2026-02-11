@@ -65,6 +65,8 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
   const token = getHevyAuthToken();
   if (!token) return;
 
+  if (deps.isAnalyzing) return;
+
   deps.setHevyLoginError(null);
   deps.setLoadingKind('hevy');
   deps.setIsAnalyzing(true);
@@ -128,6 +130,9 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
             clearHevyRefreshToken();
             deps.setHevyLoginError(getHevyErrorMessage(refreshErr));
           });
+      }
+      if (status && status !== 401) {
+        return Promise.resolve();
       }
       return attemptCredentialFallback()
         .catch(() => {
