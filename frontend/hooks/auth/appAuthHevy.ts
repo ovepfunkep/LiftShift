@@ -81,6 +81,18 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
     hevyBackendGetAccount(accessToken)
       .then(({ username }) => hevyBackendGetSets<WorkoutSet>(accessToken, username));
 
+  const applySetsResponse = (resp: { sets?: WorkoutSet[] }): void => {
+    const sets = resp.sets ?? [];
+    const hydrated = hydrateBackendWorkoutSets(sets);
+    const enriched = identifyPersonalRecords(hydrated);
+
+    deps.setParsedData(enriched);
+    saveLastLoginMethod('hevy', 'credentials', getHevyUsernameOrEmail() ?? undefined);
+    deps.setDataSource('hevy');
+    saveSetupComplete(true);
+    deps.setOnboarding(null);
+  };
+
   const attemptCredentialFallback = () => {
     if (!savedUsername || !savedPassword) return Promise.reject(new Error('Missing saved credentials'));
     return hevyBackendLogin(savedUsername, savedPassword)
@@ -110,28 +122,25 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
 
   initialPromise
     .then((resp) => {
-      const sets = resp.sets ?? [];
-      const hydrated = hydrateBackendWorkoutSets(sets);
-      const enriched = identifyPersonalRecords(hydrated);
-
-      deps.setParsedData(enriched);
-      saveLastLoginMethod('hevy', 'credentials', getHevyUsernameOrEmail() ?? undefined);
-      deps.setDataSource('hevy');
-      saveSetupComplete(true);
-      deps.setOnboarding(null);
+      applySetsResponse(resp);
     })
     .catch((err) => {
       const status = (err as any)?.statusCode;
       if (status && status !== 401) {
         deps.setHevyLoginError(getHevyErrorMessage(err));
-        return Promise.resolve();
+        return undefined;
       }
       return attemptRefreshFallback()
         .catch(() => attemptCredentialFallback())
         .catch(() => {
           clearHevyAuthToken();
           deps.setHevyLoginError(getHevyErrorMessage(err));
+          return undefined;
         });
+    })
+    .then((resp) => {
+      if (!resp) return;
+      applySetsResponse(resp);
     })
     .finally(() => {
       deps.finishProgress(startedAt);

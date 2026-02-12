@@ -84,6 +84,27 @@ export const loadHevyFromToken = (
     hevyBackendGetAccount(accessToken)
       .then(({ username }) => hevyBackendGetSets<WorkoutSet>(accessToken, username));
 
+  const applySetsResponse = (resp: { sets?: WorkoutSet[]; meta?: { workouts?: number } }): void => {
+    if (trackConfig) {
+      trackEvent('hevy_sync_success', { method: trackConfig.successMethod, workouts: resp.meta?.workouts });
+    }
+    const sets = resp.sets ?? [];
+
+    const hydrated = hydrateBackendWorkoutSets(sets);
+    if (hydrated.length === 0 || hydrated.every((s) => !s.parsedDate)) {
+      clearHevyAuthToken();
+      saveSetupComplete(false);
+      deps.setHevyLoginError('Hevy data could not be parsed. Please try syncing again.');
+      deps.setOnboarding({ intent: 'initial', step: 'platform' });
+      return;
+    }
+
+    const enriched = identifyPersonalRecords(hydrated);
+    deps.setParsedData(enriched);
+    deps.setHevyLoginError(null);
+    deps.setCsvImportError(null);
+  };
+
   const attemptCredentialFallback = () => {
     const username = getHevyUsernameOrEmail();
     const password = getHevyPassword();
@@ -110,25 +131,7 @@ export const loadHevyFromToken = (
 
   initialPromise
     .then((resp) => {
-      if (trackConfig) {
-        trackEvent('hevy_sync_success', { method: trackConfig.successMethod, workouts: resp.meta?.workouts });
-      }
-      const sets = resp.sets ?? [];
-
-      // Instant processing
-      const hydrated = hydrateBackendWorkoutSets(sets);
-      if (hydrated.length === 0 || hydrated.every((s) => !s.parsedDate)) {
-        clearHevyAuthToken();
-        saveSetupComplete(false);
-        deps.setHevyLoginError('Hevy data could not be parsed. Please try syncing again.');
-        deps.setOnboarding({ intent: 'initial', step: 'platform' });
-        return;
-      }
-
-      const enriched = identifyPersonalRecords(hydrated);
-      deps.setParsedData(enriched);
-      deps.setHevyLoginError(null);
-      deps.setCsvImportError(null);
+      applySetsResponse(resp);
     })
     .catch((err) => {
       if (trackConfig) {
@@ -140,7 +143,7 @@ export const loadHevyFromToken = (
         saveSetupComplete(false);
         deps.setHevyLoginError(getHevyErrorMessage(err));
         deps.setOnboarding({ intent: 'initial', step: 'platform' });
-        return;
+        return undefined;
       }
       return attemptRefreshFallback()
         .catch(() => attemptCredentialFallback())
@@ -149,7 +152,12 @@ export const loadHevyFromToken = (
           saveSetupComplete(false);
           deps.setHevyLoginError(getHevyErrorMessage(err));
           deps.setOnboarding({ intent: 'initial', step: 'platform' });
+          return undefined;
         });
+    })
+    .then((resp) => {
+      if (!resp) return;
+      applySetsResponse(resp);
     })
     .finally(() => {
       deps.finishProgress(startedAt);
