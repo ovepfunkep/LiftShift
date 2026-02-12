@@ -4,7 +4,6 @@ import { buildBackendUrl, parseError, type BackendSetsResponse } from './common'
 export interface BackendLoginResponse {
   auth_token: string;
   access_token?: string;
-  refresh_token?: string;
   user_id: string;
   expires_at?: string;
 }
@@ -113,16 +112,4 @@ export const hevyBackendGetSets = async <TSet>(authToken: string, username: stri
 
   if (!res.ok) throw new Error(await parseError(res));
   return (await res.json()) as BackendSetsResponse<TSet>;
-};
-
-// Refresh access token using refresh token
-export const hevyBackendRefreshToken = async (refreshToken: string): Promise<BackendLoginResponse> => {
-  const res = await fetch(buildBackendUrl('/api/hevy/refresh'), {
-    method: 'POST',
-    headers: mergeAnalyticsHeaders({ 'content-type': 'application/json' }),
-    body: JSON.stringify({ refresh_token: refreshToken }),
-  });
-
-  if (!res.ok) throw new Error(await parseError(res));
-  return (await res.json()) as BackendLoginResponse;
 };

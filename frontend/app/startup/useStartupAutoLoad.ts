@@ -133,7 +133,7 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
           return true;
         }
 
-        // Priority 1: Token (refresh handled inside)
+        // Priority 1: Token
         if (token) {
           loadHevyFromToken(params, token, {
             successMethod: 'saved_auth_token',

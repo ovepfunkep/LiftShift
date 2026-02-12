@@ -1,6 +1,23 @@
 import express from 'express';
-import { hevyGetAccount, hevyGetWorkoutsPaged, hevyLogin, hevyRefreshToken, hevyValidateAuthToken } from '../hevyApi';
+import { hevyGetAccount, hevyGetWorkoutsPaged, hevyLogin, hevyValidateAuthToken } from '../hevyApi';
 import { mapHevyWorkoutsToWorkoutSets } from '../mapToWorkoutSets';
+
+const createTraceId = (prefix: string): string =>
+  `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const maskIdentifier = (input: string): string => {
+  if (!input) return '';
+  if (input.length <= 2) return '*'.repeat(input.length);
+  if (input.length <= 6) return `${input[0]}***${input[input.length - 1]}`;
+  return `${input.slice(0, 2)}***${input.slice(-2)}`;
+};
+
+const getClientId = (req: express.Request): string => {
+  const raw = req.header('x-liftshift-client-id');
+  const id = typeof raw === 'string' ? raw.trim() : '';
+  if (!id) return 'unknown';
+  return id.length <= 64 ? id : id.slice(0, 64);
+};
 
 export const createHevyRouter = (opts: {
   loginLimiter: express.RequestHandler;
@@ -11,55 +28,45 @@ export const createHevyRouter = (opts: {
   const router = express.Router();
 
   router.post('/login', loginLimiter, async (req, res) => {
+    const traceId = createTraceId('hevy-login');
+    const startedAt = Date.now();
     const emailOrUsername = String(req.body?.emailOrUsername ?? '').trim();
     const password = String(req.body?.password ?? '');
 
     if (!emailOrUsername || !password) {
+      console.warn('[Hevy Route] Login rejected: missing credentials', { traceId });
       return res.status(400).json({ error: 'Missing emailOrUsername or password' });
     }
 
+    console.log('[Hevy Route] Login started', {
+      traceId,
+      emailOrUsername: maskIdentifier(emailOrUsername),
+      ip: req.ip,
+      clientId: getClientId(req),
+    });
+
     try {
-      const data = await hevyLogin(emailOrUsername, password);
-      // Return new OAuth2 format with access_token, refresh_token, and expires_at
+      const data = await hevyLogin(emailOrUsername, password, { traceId });
+      // Return OAuth2 format with access_token and expires_at
+      console.log('[Hevy Route] Login succeeded', {
+        traceId,
+        durationMs: Date.now() - startedAt,
+      });
       res.json({ 
         auth_token: data.auth_token,
         access_token: data.access_token,
-        refresh_token: data.refresh_token,
         user_id: data.user_id, 
         expires_at: data.expires_at 
       });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Login failed';
-      if (status === 401) {
-        return res.status(401).json({
-          error: `${message}.`,
-        });
-      }
-      res.status(status).json({ error: message });
-    }
-  });
-
-  // New endpoint: Refresh token
-  router.post('/refresh', loginLimiter, async (req, res) => {
-    const refreshToken = String(req.body?.refresh_token ?? '').trim();
-
-    if (!refreshToken) {
-      return res.status(400).json({ error: 'Missing refresh_token' });
-    }
-
-    try {
-      const data = await hevyRefreshToken(refreshToken);
-      res.json({ 
-        auth_token: data.auth_token,
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        user_id: data.user_id, 
-        expires_at: data.expires_at 
+      console.error('[Hevy Route] Login failed', {
+        traceId,
+        status,
+        durationMs: Date.now() - startedAt,
+        message,
       });
-    } catch (err) {
-      const status = (err as any).statusCode ?? 500;
-      const message = (err as Error).message || 'Token refresh failed';
       if (status === 401) {
         return res.status(401).json({
           error: `${message}.`,

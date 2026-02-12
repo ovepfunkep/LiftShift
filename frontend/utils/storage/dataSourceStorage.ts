@@ -56,17 +56,6 @@ export const clearHevyAuthToken = (): void => {
   hevyAuthExpiresAtStorage.clear();
 };
 
-// Hevy Refresh Token
-const hevyRefreshTokenStorage = createStorageManager<string | null>({
-  key: 'hevy_refresh_token',
-  defaultValue: null,
-  validator: (v) => v,
-});
-
-export const saveHevyRefreshToken = (token: string): void => hevyRefreshTokenStorage.set(token);
-export const getHevyRefreshToken = (): string | null => hevyRefreshTokenStorage.get();
-export const clearHevyRefreshToken = (): void => hevyRefreshTokenStorage.clear();
-
 // Hevy Pro API Key
 const hevyProApiKeyStorage = createStorageManager<string | null>({
   key: 'hevy_pro_api_key',

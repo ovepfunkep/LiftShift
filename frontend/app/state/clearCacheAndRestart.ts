@@ -11,7 +11,6 @@ import {
 import {
   clearDataSourceChoice,
   clearHevyAuthToken,
-  clearHevyRefreshToken,
   clearHevyProApiKey,
   clearLastCsvPlatform,
   clearLastLoginMethod,
@@ -23,8 +22,6 @@ export const clearCacheAndRestart = (): void => {
   trackEvent('cache_clear', {});
   clearCSVData();
   clearHevyAuthToken();
-  // clears stored auth expiry as well
-  clearHevyRefreshToken();
   clearHevyProApiKey();
   // Keep credentials for auto-relogin unless user explicitly logs out
   clearLyfataApiKey();

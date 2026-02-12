@@ -4,6 +4,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { analyticsRequestMiddleware } from './analytics/requestTracking';
 import { shutdownPosthog } from './analytics/posthog';
+import { shutdownRecaptchaSession, warmRecaptchaSession } from './hevyRecaptcha';
 import { createHevyRouter } from './routes/hevyRoutes';
 import { createHevyProRouter } from './routes/hevyProRoutes';
 import { createLyftaRouter } from './routes/lyftaRoutes';
@@ -148,6 +149,20 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 
 const server = app.listen(PORT, () => {
   console.log(`LiftShift backend listening on :${PORT}`);
+
+  if (String(process.env.HEVY_RECAPTCHA_WARMUP ?? 'true').toLowerCase() !== 'false') {
+    const warmupTimer = setTimeout(() => {
+      warmRecaptchaSession({ traceId: 'startup-warmup' })
+        .then(() => {
+          console.log('[Puppeteer] Startup warmup complete');
+        })
+        .catch((err) => {
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn('[Puppeteer] Startup warmup failed:', message);
+        });
+    }, 500);
+    warmupTimer.unref();
+  }
 });
 
 let shuttingDown = false;
@@ -178,6 +193,13 @@ const shutdown = async (signal: string, exitCode = 0) => {
     console.log('[Server] PostHog shutdown complete');
   } catch (err) {
     console.error('[Server] Error during PostHog shutdown:', err);
+  }
+
+  try {
+    await shutdownRecaptchaSession();
+    console.log('[Server] Recaptcha session shutdown complete');
+  } catch (err) {
+    console.error('[Server] Error during recaptcha session shutdown:', err);
   }
 
   console.log('[Server] Graceful shutdown complete');
