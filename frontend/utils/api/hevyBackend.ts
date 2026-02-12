@@ -20,14 +20,18 @@ const BACKEND_TIMEOUT_MS = (() => {
   return Number.isFinite(raw) && raw > 0 ? raw : 25_000;
 })();
 
-const fetchWithTimeout = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+const fetchWithTimeout = async (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  timeoutMs: number = BACKEND_TIMEOUT_MS
+): Promise<Response> => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), BACKEND_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(input, { ...init, signal: controller.signal });
   } catch (err) {
     if ((err as any)?.name === 'AbortError') {
-      const timeoutErr = new Error(`Request timed out after ${BACKEND_TIMEOUT_MS}ms`);
+      const timeoutErr = new Error(`Request timed out after ${timeoutMs}ms`);
       (timeoutErr as any).statusCode = 408;
       throw timeoutErr;
     }
@@ -116,10 +120,38 @@ export const hevyBackendLogin = async (emailOrUsername: string, password: string
   return (await res.json()) as BackendLoginResponse;
 };
 
+export const hevyBackendWarmup = async (
+  emailOrUsername: string,
+  timeoutMs: number = 60_000
+): Promise<boolean> => {
+  const res = await fetchWithTimeout(
+    buildBackendUrl('/api/hevy/recaptcha/warmup'),
+    {
+      method: 'POST',
+      headers: mergeAnalyticsHeaders({ 'content-type': 'application/json' }),
+      body: JSON.stringify({ emailOrUsername }),
+    },
+    timeoutMs
+  );
+
+  if (!res.ok) return false;
+  const json = (await res.json()) as { warmed?: boolean };
+  return Boolean(json.warmed);
+};
+
+export const backendWakeup = async (timeoutMs: number = 12_000): Promise<boolean> => {
+  try {
+    const res = await fetchWithTimeout(buildBackendUrl('/api/health'), undefined, timeoutMs);
+    return res.ok;
+  } catch {
+    return false;
+  }
+};
+
 export const hevyBackendRefresh = async (
   authToken: string | null,
   refreshToken: string,
-  usernameHint?: string | null
+  emailOrUsername?: string | null
 ): Promise<BackendLoginResponse> => {
   const res = await fetchWithTimeout(buildBackendUrl('/api/hevy/refresh'), {
     method: 'POST',
@@ -130,7 +162,7 @@ export const hevyBackendRefresh = async (
     body: JSON.stringify({
       auth_token: authToken || undefined,
       refresh_token: refreshToken,
-      username_hint: usernameHint?.trim() || undefined,
+      emailOrUsername: emailOrUsername?.trim() || undefined,
     }),
   });
 

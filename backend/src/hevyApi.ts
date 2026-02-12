@@ -78,19 +78,18 @@ export const hevyLogin = async (
   const trace = getTraceLabel(context.traceId);
   const startedAt = Date.now();
   const recaptchaStartedAt = Date.now();
-  const recaptchaToken = await getRecaptchaToken({ traceId: context.traceId });
+  const recaptchaToken = await getRecaptchaToken({
+    traceId: context.traceId,
+    cacheKey: emailOrUsername,
+    allowCached: true,
+  });
   const recaptchaDurationMs = Date.now() - recaptchaStartedAt;
 
   const headers = buildHeaders();
 
   const body = { emailOrUsername, password, recaptchaToken, useAuth2_0: true };
 
-  console.log(`[Hevy Login] Request ${trace}:`, {
-    url: buildEndpointUrl('/login'),
-    headers: { ...headers, 'x-api-key': '***' },
-    emailOrUsername,
-    recaptchaDuration: formatDuration(recaptchaDurationMs),
-  });
+  // Request logging removed - route-level logging captures user flow
 
   const requestStartedAt = Date.now();
   let res: Response;
@@ -102,43 +101,18 @@ export const hevyLogin = async (
       signal: timeoutSignal(HEVY_LOGIN_TIMEOUT_MS),
     });
   } catch (err) {
-    const requestDurationMs = Date.now() - requestStartedAt;
-    const totalDurationMs = Date.now() - startedAt;
-    console.error(`[Hevy Login] Network error ${trace}:`, {
-      error: err instanceof Error ? err.message : String(err),
-      requestDuration: formatDuration(requestDurationMs),
-      totalDuration: formatDuration(totalDurationMs),
-    });
     throw err;
   }
 
   const requestDurationMs = Date.now() - requestStartedAt;
-  console.log(`[Hevy Login] Response ${trace}:`, {
-    status: res.status,
-    statusText: res.statusText,
-    requestDuration: formatDuration(requestDurationMs),
-  });
-
   if (!res.ok) {
     const msg = await parseErrorBody(res);
-    const totalDurationMs = Date.now() - startedAt;
-    console.error(`[Hevy Login] Error ${trace}:`, {
-      message: msg,
-      totalDuration: formatDuration(totalDurationMs),
-    });
     const err = new Error(msg);
     (err as any).statusCode = res.status;
     throw err;
   }
 
   const payload = mapOAuthResponse(await res.json() as HevyLoginResponse);
-  const totalDurationMs = Date.now() - startedAt;
-  console.log(`[Hevy Login] Success ${trace}:`, {
-    totalDuration: formatDuration(totalDurationMs),
-    hasExpiresAt: Boolean(payload.expires_at),
-    hasRefreshToken: Boolean(payload.refresh_token),
-    userId: payload.user_id,
-  });
   return payload;
 };
 
@@ -160,12 +134,6 @@ export const hevyRefreshToken = async (
   const body = { refresh_token: trimmedRefreshToken };
   const refreshUrl = buildEndpointUrl(HEVY_REFRESH_PATH);
 
-  console.log(`[Hevy Refresh] Request ${trace}:`, {
-    url: refreshUrl,
-    headers: { ...headers, 'x-api-key': '***' },
-    hasAuthorization: Boolean(accessToken),
-  });
-
   const requestStartedAt = Date.now();
   let res: Response;
   try {
@@ -176,42 +144,17 @@ export const hevyRefreshToken = async (
       signal: timeoutSignal(HEVY_REFRESH_TIMEOUT_MS),
     });
   } catch (err) {
-    const requestDurationMs = Date.now() - requestStartedAt;
-    const totalDurationMs = Date.now() - startedAt;
-    console.error(`[Hevy Refresh] Network error ${trace}:`, {
-      error: err instanceof Error ? err.message : String(err),
-      requestDuration: formatDuration(requestDurationMs),
-      totalDuration: formatDuration(totalDurationMs),
-    });
     throw err;
   }
 
-  const requestDurationMs = Date.now() - requestStartedAt;
-  console.log(`[Hevy Refresh] Response ${trace}:`, {
-    status: res.status,
-    statusText: res.statusText,
-    requestDuration: formatDuration(requestDurationMs),
-  });
-
   if (!res.ok) {
     const msg = await parseErrorBody(res);
-    const totalDurationMs = Date.now() - startedAt;
-    console.error(`[Hevy Refresh] Error ${trace}:`, {
-      message: msg,
-      totalDuration: formatDuration(totalDurationMs),
-    });
     const err = new Error(msg);
     (err as any).statusCode = res.status;
     throw err;
   }
 
   const payload = mapOAuthResponse(await res.json() as HevyLoginResponse);
-  const totalDurationMs = Date.now() - startedAt;
-  console.log(`[Hevy Refresh] Success ${trace}:`, {
-    totalDuration: formatDuration(totalDurationMs),
-    hasExpiresAt: Boolean(payload.expires_at),
-    hasRefreshToken: Boolean(payload.refresh_token),
-  });
   return payload;
 };
 

@@ -8,7 +8,8 @@ import {
   getHevyUsernameOrEmail,
   saveHevyUsernameOrEmail,
 } from '../../../utils/storage/hevyCredentialsStorage';
-import { getHevyProApiKey } from '../../../utils/storage/dataSourceStorage';
+import { getHevyAuthToken, getHevyAuthExpiresAt, getHevyRefreshToken, getHevyProApiKey } from '../../../utils/storage/dataSourceStorage';
+import { hevyBackendWarmup } from '../../../utils/api/hevyBackend';
 
 type Intent = 'initial' | 'update';
 
@@ -51,6 +52,7 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
   const [apiKey, setApiKey] = useState(() => getHevyProApiKey() || '');
   const [showLoginHelp, setShowLoginHelp] = useState(false);
   const passwordTouchedRef = useRef(false);
+  const warmupTriggeredRef = useRef(false);
 
   // When in API key mode, back should return to credentials view, not unit/gender screen
   const handleBack = () => {
@@ -66,6 +68,25 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
     if (passwordTouchedRef.current) return;
     if (stored) setPassword(stored);
   }, []);
+
+  const hasValidToken = () => {
+    const authToken = getHevyAuthToken();
+    const refreshToken = getHevyRefreshToken();
+    const expiresAt = getHevyAuthExpiresAt();
+    if (!authToken || !refreshToken) return false;
+    if (!expiresAt) return true;
+    const expires = Date.parse(expiresAt);
+    if (!Number.isFinite(expires)) return true;
+    return expires > Date.now() + 60_000;
+  };
+
+  const maybeWarmup = (value: string) => {
+    if (warmupTriggeredRef.current) return;
+    if (!value || value.trim().length === 0) return;
+    if (hasValidToken()) return;
+    warmupTriggeredRef.current = true;
+    void hevyBackendWarmup(value.trim());
+  };
 
   return (
     <OnboardingModalShell
@@ -152,7 +173,11 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
                     <input
                       name="username"
                       value={emailOrUsername}
-                      onChange={(e) => setEmailOrUsername(e.target.value)}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setEmailOrUsername(next);
+                        maybeWarmup(next);
+                      }}
                       disabled={isLoading}
                       className="mt-1 w-full h-10 rounded-md bg-slate-900/20 border border-slate-700/60 px-3 text-sm text-slate-200 placeholder:text-slate-500 outline-none focus:border-emerald-500/60"
                       placeholder="Use your Hevy username or email"
@@ -169,7 +194,9 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
                       value={password}
                       onChange={(e) => {
                         passwordTouchedRef.current = true;
-                        setPassword(e.target.value);
+                        const next = e.target.value;
+                        setPassword(next);
+                        maybeWarmup(emailOrUsername || next);
                       }}
                       disabled={isLoading}
                       className="mt-1 w-full h-10 rounded-md bg-slate-900/20 border border-slate-700/60 px-3 text-sm text-slate-200 placeholder:text-slate-500 outline-none focus:border-emerald-500/60"
