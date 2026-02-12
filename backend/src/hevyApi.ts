@@ -64,17 +64,11 @@ const timeoutSignal = (timeoutMs: number): AbortSignal | undefined => {
   return AbortSignal.timeout(timeoutMs);
 };
 
-const maskIdentifier = (input: string): string => {
-  if (!input) return '';
-  if (input.length <= 2) return '*'.repeat(input.length);
-  if (input.length <= 6) return `${input[0]}***${input[input.length - 1]}`;
-  return `${input.slice(0, 2)}***${input.slice(-2)}`;
-};
-
 const getTraceLabel = (traceId?: string): string => (traceId ? `[${traceId}]` : '[no-trace]');
 const buildEndpointUrl = (path: string): string => (
   path.startsWith('/') ? `${HEVY_BASE_URL}${path}` : `${HEVY_BASE_URL}/${path}`
 );
+const formatDuration = (ms: number): string => `${(ms / 1000).toFixed(2)}s (${ms}ms)`;
 
 export const hevyLogin = async (
   emailOrUsername: string,
@@ -94,13 +88,8 @@ export const hevyLogin = async (
   console.log(`[Hevy Login] Request ${trace}:`, {
     url: buildEndpointUrl('/login'),
     headers: { ...headers, 'x-api-key': '***' },
-    body: {
-      emailOrUsername: maskIdentifier(emailOrUsername),
-      password: '***',
-      recaptchaTokenLength: recaptchaToken.length,
-      useAuth2_0: true,
-    },
-    recaptchaDurationMs,
+    emailOrUsername,
+    recaptchaDuration: formatDuration(recaptchaDurationMs),
   });
 
   const requestStartedAt = Date.now();
@@ -113,10 +102,12 @@ export const hevyLogin = async (
       signal: timeoutSignal(HEVY_LOGIN_TIMEOUT_MS),
     });
   } catch (err) {
+    const requestDurationMs = Date.now() - requestStartedAt;
+    const totalDurationMs = Date.now() - startedAt;
     console.error(`[Hevy Login] Network error ${trace}:`, {
       error: err instanceof Error ? err.message : String(err),
-      requestDurationMs: Date.now() - requestStartedAt,
-      totalDurationMs: Date.now() - startedAt,
+      requestDuration: formatDuration(requestDurationMs),
+      totalDuration: formatDuration(totalDurationMs),
     });
     throw err;
   }
@@ -125,14 +116,15 @@ export const hevyLogin = async (
   console.log(`[Hevy Login] Response ${trace}:`, {
     status: res.status,
     statusText: res.statusText,
-    requestDurationMs,
+    requestDuration: formatDuration(requestDurationMs),
   });
 
   if (!res.ok) {
     const msg = await parseErrorBody(res);
+    const totalDurationMs = Date.now() - startedAt;
     console.error(`[Hevy Login] Error ${trace}:`, {
       message: msg,
-      totalDurationMs: Date.now() - startedAt,
+      totalDuration: formatDuration(totalDurationMs),
     });
     const err = new Error(msg);
     (err as any).statusCode = res.status;
@@ -140,8 +132,9 @@ export const hevyLogin = async (
   }
 
   const payload = mapOAuthResponse(await res.json() as HevyLoginResponse);
+  const totalDurationMs = Date.now() - startedAt;
   console.log(`[Hevy Login] Success ${trace}:`, {
-    totalDurationMs: Date.now() - startedAt,
+    totalDuration: formatDuration(totalDurationMs),
     hasExpiresAt: Boolean(payload.expires_at),
     hasRefreshToken: Boolean(payload.refresh_token),
     userId: payload.user_id,
@@ -170,7 +163,6 @@ export const hevyRefreshToken = async (
   console.log(`[Hevy Refresh] Request ${trace}:`, {
     url: refreshUrl,
     headers: { ...headers, 'x-api-key': '***' },
-    body: { refreshTokenLength: trimmedRefreshToken.length },
     hasAuthorization: Boolean(accessToken),
   });
 
@@ -184,10 +176,12 @@ export const hevyRefreshToken = async (
       signal: timeoutSignal(HEVY_REFRESH_TIMEOUT_MS),
     });
   } catch (err) {
+    const requestDurationMs = Date.now() - requestStartedAt;
+    const totalDurationMs = Date.now() - startedAt;
     console.error(`[Hevy Refresh] Network error ${trace}:`, {
       error: err instanceof Error ? err.message : String(err),
-      requestDurationMs: Date.now() - requestStartedAt,
-      totalDurationMs: Date.now() - startedAt,
+      requestDuration: formatDuration(requestDurationMs),
+      totalDuration: formatDuration(totalDurationMs),
     });
     throw err;
   }
@@ -196,14 +190,15 @@ export const hevyRefreshToken = async (
   console.log(`[Hevy Refresh] Response ${trace}:`, {
     status: res.status,
     statusText: res.statusText,
-    requestDurationMs,
+    requestDuration: formatDuration(requestDurationMs),
   });
 
   if (!res.ok) {
     const msg = await parseErrorBody(res);
+    const totalDurationMs = Date.now() - startedAt;
     console.error(`[Hevy Refresh] Error ${trace}:`, {
       message: msg,
-      totalDurationMs: Date.now() - startedAt,
+      totalDuration: formatDuration(totalDurationMs),
     });
     const err = new Error(msg);
     (err as any).statusCode = res.status;
@@ -211,8 +206,9 @@ export const hevyRefreshToken = async (
   }
 
   const payload = mapOAuthResponse(await res.json() as HevyLoginResponse);
+  const totalDurationMs = Date.now() - startedAt;
   console.log(`[Hevy Refresh] Success ${trace}:`, {
-    totalDurationMs: Date.now() - startedAt,
+    totalDuration: formatDuration(totalDurationMs),
     hasExpiresAt: Boolean(payload.expires_at),
     hasRefreshToken: Boolean(payload.refresh_token),
   });

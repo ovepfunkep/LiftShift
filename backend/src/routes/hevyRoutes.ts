@@ -5,12 +5,7 @@ import { mapHevyWorkoutsToWorkoutSets } from '../mapToWorkoutSets';
 const createTraceId = (prefix: string): string =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-const maskIdentifier = (input: string): string => {
-  if (!input) return '';
-  if (input.length <= 2) return '*'.repeat(input.length);
-  if (input.length <= 6) return `${input[0]}***${input[input.length - 1]}`;
-  return `${input.slice(0, 2)}***${input.slice(-2)}`;
-};
+const formatDuration = (ms: number): string => `${(ms / 1000).toFixed(2)}s (${ms}ms)`;
 
 const getClientId = (req: express.Request): string => {
   const raw = req.header('x-liftshift-client-id');
@@ -40,7 +35,7 @@ export const createHevyRouter = (opts: {
 
     console.log('[Hevy Route] Login started', {
       traceId,
-      emailOrUsername: maskIdentifier(emailOrUsername),
+      emailOrUsername,
       ip: req.ip,
       clientId: getClientId(req),
     });
@@ -48,9 +43,10 @@ export const createHevyRouter = (opts: {
     try {
       const data = await hevyLogin(emailOrUsername, password, { traceId });
       // Return OAuth2 format with access_token and expires_at
+      const durationMs = Date.now() - startedAt;
       console.log('[Hevy Route] Login succeeded', {
         traceId,
-        durationMs: Date.now() - startedAt,
+        duration: formatDuration(durationMs),
       });
       res.json({ 
         auth_token: data.auth_token,
@@ -62,10 +58,11 @@ export const createHevyRouter = (opts: {
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Login failed';
+      const durationMs = Date.now() - startedAt;
       console.error('[Hevy Route] Login failed', {
         traceId,
         status,
-        durationMs: Date.now() - startedAt,
+        duration: formatDuration(durationMs),
         message,
       });
       if (status === 401) {
@@ -107,16 +104,16 @@ export const createHevyRouter = (opts: {
     console.log('[Hevy Route] Refresh started', {
       traceId,
       hasAuthToken: Boolean(authToken),
-      refreshTokenLength: refreshToken.length,
       ip: req.ip,
       clientId: getClientId(req),
     });
 
     try {
       const data = await hevyRefreshToken(refreshToken, authToken || undefined, { traceId });
+      const durationMs = Date.now() - startedAt;
       console.log('[Hevy Route] Refresh succeeded', {
         traceId,
-        durationMs: Date.now() - startedAt,
+        duration: formatDuration(durationMs),
         hasExpiresAt: Boolean(data.expires_at),
         hasRefreshToken: Boolean(data.refresh_token),
       });
@@ -130,10 +127,11 @@ export const createHevyRouter = (opts: {
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Refresh failed';
+      const durationMs = Date.now() - startedAt;
       console.error('[Hevy Route] Refresh failed', {
         traceId,
         status,
-        durationMs: Date.now() - startedAt,
+        duration: formatDuration(durationMs),
         message,
       });
       if (status === 401) {
