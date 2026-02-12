@@ -94,8 +94,9 @@ export const loadHevyFromToken = (
   };
 
   const attemptRefreshFallback = () => {
+    const username = getHevyUsernameOrEmail();
     if (!savedRefreshToken) return Promise.reject(new Error('Missing saved refresh token'));
-    return hevyBackendRefresh(token, savedRefreshToken)
+    return hevyBackendRefresh(token, savedRefreshToken, username)
       .then((r) => {
         if (!r.auth_token) throw new Error('Missing auth token');
         saveHevyAuthToken(r.auth_token);

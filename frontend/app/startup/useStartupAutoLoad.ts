@@ -56,6 +56,13 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
     params.setIsAnalyzing(true);
 
     params.setDataSource(storedChoice);
+    console.log('[StartupAutoLoad] Starting', {
+      storedChoice,
+      hasHevyToken: Boolean(getHevyAuthToken()),
+      hasHevyProApiKey: Boolean(getHevyProApiKey()),
+      hasLyftaApiKey: Boolean(getLyfataApiKey()),
+      hasCsvData: Boolean(getCSVData()),
+    });
 
     const hevyAccountKey = storedChoice === 'hevy' ? (getHevyUsernameOrEmail() ?? undefined) : undefined;
     const lastMethod = getLastLoginMethod(storedChoice, hevyAccountKey);
@@ -175,6 +182,9 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
     };
 
     // Execute auto-reload
-    attemptReload(storedChoice, lastMethod);
+    attemptReload(storedChoice, lastMethod).catch((err) => {
+      console.error('[StartupAutoLoad] Unexpected failure', err);
+      resetToPlatform();
+    });
   }, []);
 };

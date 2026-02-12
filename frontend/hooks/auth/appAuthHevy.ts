@@ -96,7 +96,7 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
 
   const attemptRefreshFallback = () => {
     if (!savedRefreshToken) return Promise.reject(new Error('Missing saved refresh token'));
-    return hevyBackendRefresh(token, savedRefreshToken)
+    return hevyBackendRefresh(token, savedRefreshToken, savedUsername)
       .then((r) => {
         if (!r.auth_token) throw new Error('Missing auth token');
         saveHevyAuthToken(r.auth_token);
@@ -195,7 +195,7 @@ export const runHevyLogin = (deps: AppAuthHandlersDeps, emailOrUsername: string,
   );
 
   const authPromise = canReuseRefreshForThisAccount
-    ? hevyBackendRefresh(getHevyAuthToken(), getHevyRefreshToken() as string)
+    ? hevyBackendRefresh(getHevyAuthToken(), getHevyRefreshToken() as string, trimmed)
         .catch(() => hevyBackendLogin(emailOrUsername, password))
     : hevyBackendLogin(emailOrUsername, password);
 

@@ -153,9 +153,10 @@ const server = app.listen(PORT, () => {
     refreshPath: process.env.HEVY_REFRESH_PATH ?? '/auth/refresh_token',
     refreshTimeoutMs: Number(process.env.HEVY_REFRESH_TIMEOUT_MS ?? 15_000),
     recaptchaIdleCloseMs: Number(process.env.HEVY_RECAPTCHA_IDLE_CLOSE_MS ?? 5 * 60 * 1000),
+    recaptchaWarmupEnabled: String(process.env.HEVY_RECAPTCHA_WARMUP ?? 'false').toLowerCase() !== 'false',
   });
 
-  if (String(process.env.HEVY_RECAPTCHA_WARMUP ?? 'true').toLowerCase() !== 'false') {
+  if (String(process.env.HEVY_RECAPTCHA_WARMUP ?? 'false').toLowerCase() !== 'false') {
     const warmupTimer = setTimeout(() => {
       warmRecaptchaSession({ traceId: 'startup-warmup' })
         .then(() => {

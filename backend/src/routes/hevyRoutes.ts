@@ -91,6 +91,7 @@ export const createHevyRouter = (opts: {
     const traceId = createTraceId('hevy-refresh');
     const startedAt = Date.now();
     const refreshToken = String(req.body?.refresh_token ?? '').trim();
+    const usernameHint = String(req.body?.username_hint ?? '').trim();
     const bodyAuthToken = String(req.body?.auth_token ?? '').trim();
     const authHeader = req.header('authorization');
     const matchedAuth = authHeader?.match(/^Bearer\s+(.+)$/i);
@@ -103,6 +104,7 @@ export const createHevyRouter = (opts: {
 
     console.log('[Hevy Route] Refresh started', {
       traceId,
+      usernameHint: usernameHint || undefined,
       hasAuthToken: Boolean(authToken),
       ip: req.ip,
       clientId: getClientId(req),
@@ -113,6 +115,7 @@ export const createHevyRouter = (opts: {
       const durationMs = Date.now() - startedAt;
       console.log('[Hevy Route] Refresh succeeded', {
         traceId,
+        usernameHint: usernameHint || undefined,
         duration: formatDuration(durationMs),
         hasExpiresAt: Boolean(data.expires_at),
         hasRefreshToken: Boolean(data.refresh_token),
@@ -130,6 +133,7 @@ export const createHevyRouter = (opts: {
       const durationMs = Date.now() - startedAt;
       console.error('[Hevy Route] Refresh failed', {
         traceId,
+        usernameHint: usernameHint || undefined,
         status,
         duration: formatDuration(durationMs),
         message,

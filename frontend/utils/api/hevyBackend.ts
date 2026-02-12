@@ -15,12 +15,40 @@ const throwBackendError = async (res: Response): Promise<never> => {
   throw err;
 };
 
+const BACKEND_TIMEOUT_MS = (() => {
+  const raw = Number((import.meta as any).env?.VITE_BACKEND_TIMEOUT_MS ?? 25_000);
+  return Number.isFinite(raw) && raw > 0 ? raw : 25_000;
+})();
+
+const fetchWithTimeout = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), BACKEND_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (err) {
+    if ((err as any)?.name === 'AbortError') {
+      const timeoutErr = new Error(`Request timed out after ${BACKEND_TIMEOUT_MS}ms`);
+      (timeoutErr as any).statusCode = 408;
+      throw timeoutErr;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 export const hevyBackendValidateAuthToken = async (authToken: string): Promise<boolean> => {
-  const res = await fetch(buildBackendUrl('/api/hevy/validate'), {
-    method: 'POST',
-    headers: mergeAnalyticsHeaders({ 'content-type': 'application/json' }),
-    body: JSON.stringify({ auth_token: authToken }),
-  });
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(buildBackendUrl('/api/hevy/validate'), {
+      method: 'POST',
+      headers: mergeAnalyticsHeaders({ 'content-type': 'application/json' }),
+      body: JSON.stringify({ auth_token: authToken }),
+    });
+  } catch (err) {
+    console.error('Hevy auth token validation failed: network error', err);
+    return false;
+  }
 
   if (!res.ok) {
     const msg = await parseError(res);
@@ -35,7 +63,7 @@ export const hevyBackendValidateAuthToken = async (authToken: string): Promise<b
 
 export const hevyBackendValidateProApiKey = async (apiKey: string): Promise<boolean> => {
   const url = buildBackendUrl('/api/hevy/api-key/validate');
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: mergeAnalyticsHeaders({ 'content-type': 'application/json' }),
     body: JSON.stringify({ apiKey }),
@@ -58,7 +86,7 @@ export const hevyBackendValidateProApiKey = async (apiKey: string): Promise<bool
 
 export const hevyBackendGetSetsWithProApiKey = async <TSet>(apiKey: string): Promise<BackendSetsResponse<TSet>> => {
   const url = buildBackendUrl('/api/hevy/api-key/sets');
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: mergeAnalyticsHeaders({ 'content-type': 'application/json' }),
     body: JSON.stringify({ apiKey }),
@@ -78,7 +106,7 @@ export const hevyBackendGetSetsWithProApiKey = async <TSet>(apiKey: string): Pro
 };
 
 export const hevyBackendLogin = async (emailOrUsername: string, password: string): Promise<BackendLoginResponse> => {
-  const res = await fetch(buildBackendUrl('/api/hevy/login'), {
+  const res = await fetchWithTimeout(buildBackendUrl('/api/hevy/login'), {
     method: 'POST',
     headers: mergeAnalyticsHeaders({ 'content-type': 'application/json' }),
     body: JSON.stringify({ emailOrUsername, password }),
@@ -90,9 +118,10 @@ export const hevyBackendLogin = async (emailOrUsername: string, password: string
 
 export const hevyBackendRefresh = async (
   authToken: string | null,
-  refreshToken: string
+  refreshToken: string,
+  usernameHint?: string | null
 ): Promise<BackendLoginResponse> => {
-  const res = await fetch(buildBackendUrl('/api/hevy/refresh'), {
+  const res = await fetchWithTimeout(buildBackendUrl('/api/hevy/refresh'), {
     method: 'POST',
     headers: mergeAnalyticsHeaders({
       'content-type': 'application/json',
@@ -101,6 +130,7 @@ export const hevyBackendRefresh = async (
     body: JSON.stringify({
       auth_token: authToken || undefined,
       refresh_token: refreshToken,
+      username_hint: usernameHint?.trim() || undefined,
     }),
   });
 
@@ -109,7 +139,7 @@ export const hevyBackendRefresh = async (
 };
 
 export const hevyBackendGetAccount = async (authToken: string): Promise<{ username: string }> => {
-  const res = await fetch(buildBackendUrl('/api/hevy/account'), {
+  const res = await fetchWithTimeout(buildBackendUrl('/api/hevy/account'), {
     method: 'GET',
     headers: {
       ...mergeAnalyticsHeaders({
@@ -127,7 +157,7 @@ export const hevyBackendGetAccount = async (authToken: string): Promise<{ userna
 
 export const hevyBackendGetSets = async <TSet>(authToken: string, username: string): Promise<BackendSetsResponse<TSet>> => {
   const params = new URLSearchParams({ username });
-  const res = await fetch(buildBackendUrl(`/api/hevy/sets?${params.toString()}`), {
+  const res = await fetchWithTimeout(buildBackendUrl(`/api/hevy/sets?${params.toString()}`), {
     method: 'GET',
     headers: {
       ...mergeAnalyticsHeaders({
