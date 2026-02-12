@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useLayoutEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useLayoutEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { WorkoutSet } from './types';
 import { Tab } from './app/navigation';
@@ -23,9 +23,66 @@ import { useAppDerivedData } from './app/state';
 import { useCalendarSelectionHandlers } from './app/state';
 import { useUpdateFlowHandler } from './app/auth';
 
+const CHUNK_RELOAD_KEY = 'liftshift_chunk_reload_once';
+
+const CHUNK_LOAD_ERROR_PATTERNS = [
+  'dynamically imported module',
+  'failed to fetch dynamically imported module',
+  'importing a module script failed',
+  'disallowed mime type',
+];
+
+const isChunkLoadError = (value: unknown): boolean => {
+  const msg =
+    typeof value === 'string'
+      ? value
+      : value instanceof Error
+        ? value.message
+        : typeof (value as any)?.message === 'string'
+          ? (value as any).message
+          : '';
+
+  if (!msg) return false;
+  const lower = msg.toLowerCase();
+  return CHUNK_LOAD_ERROR_PATTERNS.some((pattern) => lower.includes(pattern));
+};
+
+const tryRecoverFromChunkLoadError = (): void => {
+  try {
+    if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === '1') return;
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+    window.location.reload();
+  } catch {
+    window.location.reload();
+  }
+};
+
 const App: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const onVitePreloadError = (event: Event) => {
+      const payload = (event as any)?.payload;
+      if (!isChunkLoadError(payload)) return;
+      event.preventDefault();
+      tryRecoverFromChunkLoadError();
+    };
+
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (!isChunkLoadError(event.reason)) return;
+      event.preventDefault();
+      tryRecoverFromChunkLoadError();
+    };
+
+    window.addEventListener('vite:preloadError', onVitePreloadError as EventListener);
+    window.addEventListener('unhandledrejection', onUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('vite:preloadError', onVitePreloadError as EventListener);
+      window.removeEventListener('unhandledrejection', onUnhandledRejection);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     try {

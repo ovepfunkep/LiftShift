@@ -12,6 +12,8 @@ const requireEnv = (key: string): string => {
 };
 
 const HEVY_BASE_URL = process.env.HEVY_BASE_URL ?? 'https://api.hevyapp.com';
+const DEFAULT_REFRESH_PATHS = ['/refresh', '/refresh_token'];
+let preferredRefreshPath: string | null = null;
 
 // Build headers for OAuth2 Bearer token authentication
 const buildHeaders = (accessToken?: string): Record<string, string> => {
@@ -29,6 +31,13 @@ const buildHeaders = (accessToken?: string): Record<string, string> => {
   return headers;
 };
 
+const mapOAuthResponse = (data: HevyLoginResponse): HevyLoginResponse => {
+  if (data.access_token && !data.auth_token) {
+    data.auth_token = data.access_token;
+  }
+  return data;
+};
+
 const parseErrorBody = async (res: Response): Promise<string> => {
   try {
     const text = await res.text();
@@ -36,6 +45,19 @@ const parseErrorBody = async (res: Response): Promise<string> => {
   } catch {
     return `${res.status} ${res.statusText}`;
   }
+};
+
+const getRefreshPaths = (): string[] => {
+  const envPaths = (process.env.HEVY_REFRESH_PATHS ?? '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => (p.startsWith('/') ? p : `/${p}`));
+
+  const ordered = preferredRefreshPath
+    ? [preferredRefreshPath, ...envPaths, ...DEFAULT_REFRESH_PATHS]
+    : [...envPaths, ...DEFAULT_REFRESH_PATHS];
+  return Array.from(new Set(ordered));
 };
 
 export const hevyLogin = async (emailOrUsername: string, password: string): Promise<HevyLoginResponse> => {
@@ -53,7 +75,7 @@ export const hevyLogin = async (emailOrUsername: string, password: string): Prom
   };
 
   const body = { emailOrUsername, password, recaptchaToken, useAuth2_0: true };
-  
+
   console.log('[Hevy Login] Request:', {
     url: `${HEVY_BASE_URL}/login`,
     headers: { ...headers, 'x-api-key': '***' },
@@ -79,15 +101,7 @@ export const hevyLogin = async (emailOrUsername: string, password: string): Prom
     throw err;
   }
 
-  const data = await res.json() as HevyLoginResponse;
-  
-  // Map new OAuth2 format to expected format
-  // Hevy now returns access_token instead of auth_token
-  if (data.access_token && !data.auth_token) {
-    data.auth_token = data.access_token;
-  }
-  
-  return data;
+  return mapOAuthResponse(await res.json() as HevyLoginResponse);
 };
 
 // Refresh access token using refresh token
@@ -104,39 +118,49 @@ export const hevyRefreshToken = async (refreshToken: string): Promise<HevyLoginR
   };
 
   const body = { refresh_token: refreshToken };
-  
-  console.log('[Hevy Refresh] Request:', {
-    url: `${HEVY_BASE_URL}/refresh_token`,
-    headers: { ...headers, 'x-api-key': '***' }
-  });
+  const refreshPaths = getRefreshPaths();
+  let lastError: { status: number; message: string } | null = null;
 
-  const res = await fetch(`${HEVY_BASE_URL}/refresh_token`, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(body),
-  });
+  for (const path of refreshPaths) {
+    const url = `${HEVY_BASE_URL}${path}`;
+    console.log('[Hevy Refresh] Request:', {
+      url,
+      headers: { ...headers, 'x-api-key': '***' }
+    });
 
-  console.log('[Hevy Refresh] Response:', {
-    status: res.status,
-    statusText: res.statusText
-  });
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body),
+    });
 
-  if (!res.ok) {
+    console.log('[Hevy Refresh] Response:', {
+      path,
+      status: res.status,
+      statusText: res.statusText
+    });
+
+    if (res.ok) {
+      preferredRefreshPath = path;
+      return mapOAuthResponse(await res.json() as HevyLoginResponse);
+    }
+
     const msg = await parseErrorBody(res);
-    console.error('[Hevy Refresh] Error:', msg);
-    const err = new Error(msg);
-    (err as any).statusCode = res.status;
-    throw err;
+    lastError = { status: res.status, message: msg };
+    if (res.status !== 404) {
+      console.error('[Hevy Refresh] Error:', msg);
+      const err = new Error(msg);
+      (err as any).statusCode = res.status;
+      throw err;
+    }
   }
 
-  const data = await res.json() as HevyLoginResponse;
-  
-  // Map new OAuth2 format
-  if (data.access_token && !data.auth_token) {
-    data.auth_token = data.access_token;
-  }
-  
-  return data;
+  const fallbackMsg = lastError?.message ?? 'Token refresh failed';
+  const fallbackStatus = lastError?.status ?? 500;
+  console.warn('[Hevy Refresh] No valid refresh endpoint detected. Falling back to credential login path.');
+  const err = new Error(fallbackMsg);
+  (err as any).statusCode = fallbackStatus;
+  throw err;
 };
 
 // Validate token by checking expiry or making a test request
