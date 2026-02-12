@@ -36,12 +36,9 @@ export const createHevyRouter = (opts: {
       return res.status(400).json({ error: 'Missing emailOrUsername or password' });
     }
 
-    console.log(`[User][${traceId}] Login started for ${emailOrUsername}`);
-
     try {
       const data = await hevyLogin(emailOrUsername, password, { traceId });
       const durationMs = Date.now() - startedAt;
-      console.log(`[User][${traceId}] Login success for ${emailOrUsername} in ${formatDuration(durationMs)}`);
       res.json({
         auth_token: data.auth_token,
         access_token: data.access_token,
@@ -49,6 +46,7 @@ export const createHevyRouter = (opts: {
         user_id: data.user_id,
         expires_at: data.expires_at,
       });
+      console.log(`[User][${traceId}] Login successful in ${formatDuration(durationMs)}`);
 
       // Log user profile asynchronously to avoid delaying response
       void (async () => {
@@ -117,12 +115,9 @@ export const createHevyRouter = (opts: {
       return res.status(400).json({ error: 'Missing refresh_token' });
     }
 
-    console.log(`[User][${traceId}] Refresh started for ${emailOrUsername || 'unknown'}`);
-
     try {
       const data = await hevyRefreshToken(refreshToken, authToken || undefined, { traceId });
       const durationMs = Date.now() - startedAt;
-      console.log(`[User][${traceId}] Session extended for ${emailOrUsername || 'unknown'} in ${formatDuration(durationMs)}`);
       res.json({
         auth_token: data.auth_token,
         access_token: data.access_token,
@@ -130,6 +125,7 @@ export const createHevyRouter = (opts: {
         user_id: data.user_id,
         expires_at: data.expires_at,
       });
+      console.log(`[User][${traceId}] Refresh successful in ${formatDuration(durationMs)}`);
 
       // Log user profile asynchronously to avoid delaying response
       void (async () => {

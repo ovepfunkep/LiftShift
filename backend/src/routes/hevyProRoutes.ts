@@ -51,14 +51,12 @@ export const createHevyProRouter = (opts: {
     const apiKey = String(req.body?.apiKey ?? '').trim();
     if (!apiKey) return res.status(400).json({ error: 'Missing apiKey' });
 
-    console.log(`[User][${traceId}] Hevy Pro sync started`);
     const startedAt = Date.now();
 
     try {
       // Get user info for debugging
       const userInfo = await hevyProGetUserInfo(apiKey);
       const username = extractUsernameFromUrl(userInfo.data.url);
-      console.log(`[User][${traceId}] ${userInfo.data.name || username} (@${username}) ${userInfo.data.url}`);
 
       const cacheKey = `hevyProSets:${apiKey}`;
       const { workouts, sets } = await getCachedResponse(cacheKey, async () => {
@@ -68,8 +66,9 @@ export const createHevyProRouter = (opts: {
       });
 
       const durationMs = Date.now() - startedAt;
-      console.log(`[User][${traceId}] Hevy Pro sync success in ${formatDuration(durationMs)}`);
       res.json({ sets, meta: { workouts: workouts.length } });
+      console.log(`[User][${traceId}] Hevy Pro sync successful in ${formatDuration(durationMs)}`);
+      console.log(`[User][${traceId}] ${userInfo.data.name || username} (@${username}) ${userInfo.data.url}`);
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Failed to fetch sets';

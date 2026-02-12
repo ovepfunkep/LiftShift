@@ -49,7 +49,6 @@ export const createLyftaRouter = (opts: {
 
     if (!apiKey) return res.status(400).json({ error: 'Missing apiKey' });
 
-    console.log(`[User][${traceId}] Lyfta sync started`);
     const startedAt = Date.now();
 
     try {
@@ -64,13 +63,13 @@ export const createLyftaRouter = (opts: {
         return { workouts, sets };
       });
 
+      const durationMs = Date.now() - startedAt;
+      res.json({ sets, meta: { workouts: workouts.length } });
+      console.log(`[User][${traceId}] Lyfta sync successful in ${formatDuration(durationMs)}`);
+
       // Log username for debugging
       const username = workouts[0]?.user?.username || 'unknown';
       console.log(`[User][${traceId}] lyfta_${username}`);
-      
-      const durationMs = Date.now() - startedAt;
-      console.log(`[User][${traceId}] Lyfta sync success in ${formatDuration(durationMs)}`);
-      res.json({ sets, meta: { workouts: workouts.length } });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Failed to fetch sets';

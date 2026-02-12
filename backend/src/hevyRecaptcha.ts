@@ -2,7 +2,7 @@ import puppeteer, { type Browser, type Page } from 'puppeteer';
 
 const HEVY_LOGIN_URL = 'https://hevy.com/login';
 const RECAPTCHA_SITE_KEY = '6LfkQG0jAAAAANTrIkVXKPfSPHyJnt4hYPWqxh0R';
-const RECAPTCHA_TIMEOUT_MS = Number(process.env.HEVY_RECAPTCHA_TIMEOUT_MS ?? 20_000);
+const RECAPTCHA_TIMEOUT_MS = Number(process.env.HEVY_RECAPTCHA_TIMEOUT_MS ?? 120_000);
 const BROWSER_MAX_AGE_MS = Number(process.env.HEVY_RECAPTCHA_BROWSER_MAX_AGE_MS ?? 30 * 60 * 1000);
 const BROWSER_MAX_USE_COUNT = Number(process.env.HEVY_RECAPTCHA_BROWSER_MAX_USE_COUNT ?? 100);
 const IDLE_CLOSE_MS = Number(process.env.HEVY_RECAPTCHA_IDLE_CLOSE_MS ?? 4 * 60 * 1000);
