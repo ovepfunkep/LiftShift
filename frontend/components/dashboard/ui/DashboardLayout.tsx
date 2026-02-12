@@ -154,7 +154,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
   return (
     <>
       <style>{animationKeyframes}</style>
-      <div className={`space-y-1 pb-4 sm:pb-12 transition-opacity duration-700 ease-out ${isMounted ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`space-y-2 pb-2 transition-opacity duration-700 ease-out ${isMounted ? 'opacity-100' : 'opacity-0'}`}>
         <DashboardHeaderBar
           totalWorkouts={totalWorkouts}
           filtersSlot={filtersSlot}
@@ -214,33 +214,35 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
         />
       </div>
 
-      <DashboardSecondaryCharts
-        isMounted={isMounted}
-        weekShapeView={weekShapeView}
-        setWeekShapeView={setWeekShapeView}
-        weekShapeData={weekShapeData}
-        weeklyRhythmInsight={weeklyRhythmInsight}
-        chartModes={chartModes}
-        toggleChartMode={toggleChartMode}
-        volumeView={volumeView}
-        setVolumeView={setVolumeView}
-        weightUnit={weightUnit}
-        volumeDurationData={volumeDurationData}
-        volumeDensityTrend={volumeDensityTrend}
-        topExerciseMode={topExerciseMode}
-        setTopExerciseMode={setTopExerciseMode}
-        topExercisesView={topExercisesView}
-        setTopExercisesView={setTopExercisesView}
-        topExercisesBarData={topExercisesBarData}
-        topExercisesOverTimeData={topExercisesOverTimeData}
-        topExerciseNames={topExerciseNames}
-        topExercisesInsight={topExercisesInsight}
-        pieColors={pieColors}
-        tooltipStyle={tooltipStyle}
-        onExerciseClick={onExerciseClick}
-        assetsMap={assetsMap}
-        assetsLowerMap={assetsLowerMap}
-      />
+      <div className="space-y-2">
+        <DashboardSecondaryCharts
+          isMounted={isMounted}
+          weekShapeView={weekShapeView}
+          setWeekShapeView={setWeekShapeView}
+          weekShapeData={weekShapeData}
+          weeklyRhythmInsight={weeklyRhythmInsight}
+          chartModes={chartModes}
+          toggleChartMode={toggleChartMode}
+          volumeView={volumeView}
+          setVolumeView={setVolumeView}
+          weightUnit={weightUnit}
+          volumeDurationData={volumeDurationData}
+          volumeDensityTrend={volumeDensityTrend}
+          topExerciseMode={topExerciseMode}
+          setTopExerciseMode={setTopExerciseMode}
+          topExercisesView={topExercisesView}
+          setTopExercisesView={setTopExercisesView}
+          topExercisesBarData={topExercisesBarData}
+          topExercisesOverTimeData={topExercisesOverTimeData}
+          topExerciseNames={topExerciseNames}
+          topExercisesInsight={topExercisesInsight}
+          pieColors={pieColors}
+          tooltipStyle={tooltipStyle}
+          onExerciseClick={onExerciseClick}
+          assetsMap={assetsMap}
+          assetsLowerMap={assetsLowerMap}
+        />
+      </div>
 
       <AIAnalyzeModal
         isOpen={aiAnalyzeOpen}

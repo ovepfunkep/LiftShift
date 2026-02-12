@@ -122,6 +122,7 @@ const requireAuthTokenHeader = (req: express.Request): string => {
 };
 
 app.get('/api/health', (_req, res) => {
+  console.log('[System] Health check - server awake');
   const memUsage = process.memoryUsage();
   res.json({
     status: 'ok',

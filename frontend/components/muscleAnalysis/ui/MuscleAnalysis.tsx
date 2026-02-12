@@ -244,7 +244,7 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
 
         {/* Bottom row: Lifetime Growth Potential (columns 2-3) */}
         {lifetimeAchievementData && (
-          <div className="lg:col-start-2 lg:col-span-2 lg:row-start-2 lg:h-full min-h-0">
+          <div className="h-[300px] lg:h-full lg:col-start-2 lg:col-span-2 lg:row-start-2 min-h-0">
             <LifetimeAchievementCard
               data={lifetimeAchievementData}
               selectedMuscleId={selectedMuscle}

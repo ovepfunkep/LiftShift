@@ -44,10 +44,14 @@ const safeErrorMessage = (err: unknown): string =>
 
 const formatDuration = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
 
-const logCache = (action: 'hit' | 'miss' | 'store', cacheKey: string | null | undefined, traceId?: string): void => {
+const logWarmToken = (action: 'hit' | 'store', cacheKey: string | null | undefined, traceId?: string): void => {
   if (!cacheKey) return;
   const prefix = traceId ? `[User][${traceId}]` : '[User]';
-  console.log(`${prefix} Token cache ${action} for ${cacheKey}`);
+  if (action === 'hit') {
+    console.log(`${prefix} Recaptcha token reused for ${cacheKey}`);
+    return;
+  }
+  console.log(`${prefix} Recaptcha token prepared for ${cacheKey}`);
 };
 
 const logQueue = (position: number, waitMs: number, traceId?: string): void => {
@@ -359,16 +363,14 @@ export const getRecaptchaToken = async (context?: RecaptchaContext): Promise<str
   if (context?.allowCached !== false) {
     const cached = takeCachedToken(cacheKey);
     if (cached) {
-      logCache('hit', cacheKey, context?.traceId);
+      logWarmToken('hit', cacheKey, context?.traceId);
       return cached;
     }
   }
-
-  logCache('miss', cacheKey, context?.traceId);
   const token = await fetchRecaptchaToken(context);
   if (context?.cacheResult) {
     storeCachedToken(cacheKey, token);
-    logCache('store', cacheKey, context?.traceId);
+    logWarmToken('store', cacheKey, context?.traceId);
   }
   return token;
 };
@@ -378,6 +380,7 @@ export const warmRecaptchaToken = async (context?: RecaptchaContext): Promise<vo
   if (cacheKey && getCachedToken(cacheKey)) return;
   const token = await fetchRecaptchaToken(context);
   storeCachedToken(cacheKey, token);
+  logWarmToken('store', cacheKey, context?.traceId);
 };
 
 export const warmRecaptchaSession = async (context?: RecaptchaContext): Promise<void> => {
