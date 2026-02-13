@@ -357,6 +357,9 @@ export const warmRecaptchaSession = async (context?: RecaptchaContext): Promise<
       standbyPage = await createPage(context?.traceId);
     }
     scheduleIdleClose(context?.traceId);
+
+    const waiter = pageWaiters.shift();
+    if (waiter) waiter();
   })();
 
   try {
