@@ -10,6 +10,7 @@ import { createHevyProRouter } from './routes/hevyProRoutes';
 import { createLyftaRouter } from './routes/lyftaRoutes';
 
 const PORT = Number(process.env.PORT ?? 5000);
+const STARTUP_RECAPTCHA_WARMUP_ENABLED = true;
 
 const app = express();
 
@@ -151,7 +152,7 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 const server = app.listen(PORT, () => {
   console.log(`LiftShift backend listening on :${PORT}`);
 
-  if (String(process.env.HEVY_RECAPTCHA_WARMUP ?? 'false').toLowerCase() !== 'false') {
+  if (STARTUP_RECAPTCHA_WARMUP_ENABLED) {
     const warmupTimer = setTimeout(() => {
       warmRecaptchaSession({ traceId: 'startup-warmup' })
         .then(() => {

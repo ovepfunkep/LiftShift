@@ -2,12 +2,13 @@ import puppeteer, { type Browser, type Page } from 'puppeteer';
 
 const HEVY_LOGIN_URL = 'https://hevy.com/login';
 const RECAPTCHA_SITE_KEY = '6LfkQG0jAAAAANTrIkVXKPfSPHyJnt4hYPWqxh0R';
-const RECAPTCHA_TIMEOUT_MS = Number(process.env.HEVY_RECAPTCHA_TIMEOUT_MS ?? 120_000);
-const BROWSER_MAX_AGE_MS = Number(process.env.HEVY_RECAPTCHA_BROWSER_MAX_AGE_MS ?? 30 * 60 * 1000);
-const BROWSER_MAX_USE_COUNT = Number(process.env.HEVY_RECAPTCHA_BROWSER_MAX_USE_COUNT ?? 100);
-const IDLE_CLOSE_MS = Number(process.env.HEVY_RECAPTCHA_IDLE_CLOSE_MS ?? 4 * 60 * 1000);
-const MAX_PAGES = Math.max(1, Number(process.env.HEVY_RECAPTCHA_MAX_PAGES ?? 3));
-const TOKEN_TTL_MS = Math.max(5_000, Number(process.env.HEVY_RECAPTCHA_TOKEN_TTL_MS ?? 2 * 60 * 1000));
+const RECAPTCHA_TIMEOUT_MS = 120_000;
+const BROWSER_MAX_AGE_MS = 30 * 60 * 1000;
+const BROWSER_MAX_USE_COUNT = 100;
+const IDLE_CLOSE_MS = 4 * 60 * 1000;
+// Keep one active page on low-CPU instances to avoid page-load contention.
+const MAX_PAGES = 1;
+const TOKEN_TTL_MS = 60_000;
 
 type RecaptchaContext = {
   traceId?: string;
@@ -33,6 +34,9 @@ let idleCloseTimer: ReturnType<typeof setTimeout> | null = null;
 const openPages = new Set<Page>();
 const activePages = new Set<Page>();
 const pageWaiters: Array<() => void> = [];
+let pageCreationReservations = 0;
+let sessionWarmupInFlight: Promise<void> | null = null;
+const tokenWarmupByKey = new Map<string, Promise<void>>();
 
 const now = (): number => Date.now();
 
@@ -184,6 +188,7 @@ const closeBrowser = async (reason: string, traceId?: string): Promise<void> => 
   browser = null;
   browserCreatedAt = 0;
   browserUseCount = 0;
+  pageCreationReservations = 0;
 
   for (const p of pages) {
     await closePage(p, reason, traceId);
@@ -287,10 +292,22 @@ const acquirePage = async (
       return { page: standbyPage, isStandby: true, queueMs: now() - startTime, queuePosition };
     }
 
-    if (openPages.size < MAX_PAGES) {
-      const page = await createPage(traceId);
-      activePages.add(page);
-      return { page, isStandby: false, queueMs: now() - startTime, queuePosition };
+    // Reserve a slot synchronously before awaiting page creation.
+    if ((openPages.size + pageCreationReservations) < MAX_PAGES) {
+      pageCreationReservations += 1;
+      let created = false;
+      try {
+        const page = await createPage(traceId);
+        created = true;
+        activePages.add(page);
+        return { page, isStandby: false, queueMs: now() - startTime, queuePosition };
+      } finally {
+        pageCreationReservations = Math.max(0, pageCreationReservations - 1);
+        if (!created) {
+          const waiter = pageWaiters.shift();
+          if (waiter) waiter();
+        }
+      }
     }
 
     queuePosition = pageWaiters.length + 1;
@@ -378,17 +395,53 @@ export const getRecaptchaToken = async (context?: RecaptchaContext): Promise<str
 export const warmRecaptchaToken = async (context?: RecaptchaContext): Promise<void> => {
   const cacheKey = normalizeKey(context?.cacheKey);
   if (cacheKey && getCachedToken(cacheKey)) return;
-  const token = await fetchRecaptchaToken(context);
-  storeCachedToken(cacheKey, token);
-  logWarmToken('store', cacheKey, context?.traceId);
+
+  if (cacheKey) {
+    const inFlight = tokenWarmupByKey.get(cacheKey);
+    if (inFlight) {
+      await inFlight;
+      return;
+    }
+  }
+
+  const warmupPromise = (async () => {
+    const token = await fetchRecaptchaToken(context);
+    storeCachedToken(cacheKey, token);
+    logWarmToken('store', cacheKey, context?.traceId);
+  })();
+
+  if (!cacheKey) {
+    await warmupPromise;
+    return;
+  }
+
+  tokenWarmupByKey.set(cacheKey, warmupPromise);
+  try {
+    await warmupPromise;
+  } finally {
+    tokenWarmupByKey.delete(cacheKey);
+  }
 };
 
 export const warmRecaptchaSession = async (context?: RecaptchaContext): Promise<void> => {
-  await ensureBrowser(context?.traceId);
-  if (!standbyPage || isPageClosed(standbyPage)) {
-    standbyPage = await createPage(context?.traceId);
+  if (sessionWarmupInFlight) {
+    await sessionWarmupInFlight;
+    return;
   }
-  scheduleIdleClose(context?.traceId);
+
+  sessionWarmupInFlight = (async () => {
+    await ensureBrowser(context?.traceId);
+    if (!standbyPage || isPageClosed(standbyPage)) {
+      standbyPage = await createPage(context?.traceId);
+    }
+    scheduleIdleClose(context?.traceId);
+  })();
+
+  try {
+    await sessionWarmupInFlight;
+  } finally {
+    sessionWarmupInFlight = null;
+  }
 };
 
 export const shutdownRecaptchaSession = async (): Promise<void> => {

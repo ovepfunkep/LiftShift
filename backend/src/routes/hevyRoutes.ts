@@ -1,6 +1,6 @@
 import express from 'express';
 import { hevyGetAccount, hevyGetWorkoutsPaged, hevyLogin, hevyRefreshToken, hevyValidateAuthToken } from '../hevyApi';
-import { warmRecaptchaToken } from '../hevyRecaptcha';
+import { warmRecaptchaSession, warmRecaptchaToken } from '../hevyRecaptcha';
 import { mapHevyWorkoutsToWorkoutSets } from '../mapToWorkoutSets';
 
 const createTraceId = (): string => {
@@ -10,13 +10,6 @@ const createTraceId = (): string => {
 };
 
 const formatDuration = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
-
-const getClientId = (req: express.Request): string => {
-  const raw = req.header('x-liftshift-client-id');
-  const id = typeof raw === 'string' ? raw.trim() : '';
-  if (!id) return 'unknown';
-  return id.length <= 64 ? id : id.slice(0, 64);
-};
 
 export const createHevyRouter = (opts: {
   loginLimiter: express.RequestHandler;
@@ -73,7 +66,24 @@ export const createHevyRouter = (opts: {
     }
   });
 
-  router.post('/recaptcha/warmup', loginLimiter, async (req, res) => {
+  // Warm only the browser/page session, not token. This avoids stale-token 400s.
+  router.post('/recaptcha/session-warmup', async (req, res) => {
+    const traceId = createTraceId();
+    const emailOrUsername = String(req.body?.emailOrUsername ?? '').trim();
+    if (!emailOrUsername) return res.status(400).json({ error: 'Missing emailOrUsername' });
+
+    try {
+      await warmRecaptchaSession({ traceId });
+      res.json({ warmed: true });
+    } catch (err) {
+      const status = (err as any).statusCode ?? 500;
+      const message = (err as Error).message || 'Session warmup failed';
+      res.status(status).json({ error: message });
+    }
+  });
+
+  // Backward-compatible endpoint. Kept for clients that still warm a token directly.
+  router.post('/recaptcha/warmup', async (req, res) => {
     const traceId = createTraceId();
     const emailOrUsername = String(req.body?.emailOrUsername ?? '').trim();
     if (!emailOrUsername) return res.status(400).json({ error: 'Missing emailOrUsername' });

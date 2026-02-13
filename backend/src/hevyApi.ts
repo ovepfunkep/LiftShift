@@ -13,14 +13,9 @@ const requireEnv = (key: string): string => {
 
 const HEVY_BASE_URL = process.env.HEVY_BASE_URL ?? 'https://api.hevyapp.com';
 
-const readPositiveNumberEnv = (key: string, fallback: number): number => {
-  const parsed = Number(process.env[key]);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-};
-
-const HEVY_LOGIN_TIMEOUT_MS = readPositiveNumberEnv('HEVY_LOGIN_TIMEOUT_MS', 130_000);
-const HEVY_REFRESH_TIMEOUT_MS = readPositiveNumberEnv('HEVY_REFRESH_TIMEOUT_MS', 60_000);
-const HEVY_REFRESH_PATH = process.env.HEVY_REFRESH_PATH ?? '/auth/refresh_token';
+const HEVY_LOGIN_TIMEOUT_MS = 130_000;
+const HEVY_REFRESH_TIMEOUT_MS = 60_000;
+const HEVY_REFRESH_PATH = '/auth/refresh_token';
 
 type HevyRequestContext = {
   traceId?: string;

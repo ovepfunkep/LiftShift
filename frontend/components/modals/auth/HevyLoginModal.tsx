@@ -9,7 +9,7 @@ import {
   saveHevyUsernameOrEmail,
 } from '../../../utils/storage/hevyCredentialsStorage';
 import { getHevyAuthToken, getHevyAuthExpiresAt, getHevyRefreshToken, getHevyProApiKey } from '../../../utils/storage/dataSourceStorage';
-import { hevyBackendWarmup } from '../../../utils/api/hevyBackend';
+import { hevyBackendWarmupSession } from '../../../utils/api/hevyBackend';
 
 type Intent = 'initial' | 'update';
 
@@ -85,7 +85,7 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
     if (!value || value.trim().length === 0) return;
     if (hasValidToken()) return;
     warmupTriggeredRef.current = true;
-    void hevyBackendWarmup(value.trim());
+    void hevyBackendWarmupSession(value.trim());
   };
 
   return (
@@ -173,6 +173,7 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
                     <input
                       name="username"
                       value={emailOrUsername}
+                      onFocus={() => maybeWarmup(emailOrUsername)}
                       onChange={(e) => {
                         const next = e.target.value;
                         setEmailOrUsername(next);
@@ -192,11 +193,10 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
                       name="password"
                       type="password"
                       value={password}
+                      onFocus={() => maybeWarmup(emailOrUsername)}
                       onChange={(e) => {
                         passwordTouchedRef.current = true;
-                        const next = e.target.value;
-                        setPassword(next);
-                        maybeWarmup(emailOrUsername || next);
+                        setPassword(e.target.value);
                       }}
                       disabled={isLoading}
                       className="mt-1 w-full h-10 rounded-md bg-slate-900/20 border border-slate-700/60 px-3 text-sm text-slate-200 placeholder:text-slate-500 outline-none focus:border-emerald-500/60"

@@ -139,6 +139,25 @@ export const hevyBackendWarmup = async (
   return Boolean(json.warmed);
 };
 
+export const hevyBackendWarmupSession = async (
+  emailOrUsername: string,
+  timeoutMs: number = 20_000
+): Promise<boolean> => {
+  const res = await fetchWithTimeout(
+    buildBackendUrl('/api/hevy/recaptcha/session-warmup'),
+    {
+      method: 'POST',
+      headers: mergeAnalyticsHeaders({ 'content-type': 'application/json' }),
+      body: JSON.stringify({ emailOrUsername }),
+    },
+    timeoutMs
+  );
+
+  if (!res.ok) return false;
+  const json = (await res.json()) as { warmed?: boolean };
+  return Boolean(json.warmed);
+};
+
 export const backendWakeup = async (timeoutMs: number = 12_000): Promise<boolean> => {
   try {
     const res = await fetchWithTimeout(buildBackendUrl('/api/health'), undefined, timeoutMs);
