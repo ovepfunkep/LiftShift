@@ -352,14 +352,23 @@ export const warmRecaptchaSession = async (context?: RecaptchaContext): Promise<
   }
 
   sessionWarmupInFlight = (async () => {
-    await ensureBrowser(context?.traceId);
-    if (!standbyPage || isPageClosed(standbyPage)) {
-      standbyPage = await createPage(context?.traceId);
+    if (activePages.size > 0 || pageWaiters.length > 0) {
+      scheduleIdleClose(context?.traceId);
+      return;
     }
-    scheduleIdleClose(context?.traceId);
 
-    const waiter = pageWaiters.shift();
-    if (waiter) waiter();
+    if (standbyPage && !isPageClosed(standbyPage)) {
+      scheduleIdleClose(context?.traceId);
+      return;
+    }
+
+    const { page } = await acquirePage(context?.traceId);
+    try {
+      // Page load happens inside createPage/ensureRecaptchaLoaded.
+    } finally {
+      await releasePage(page, context?.traceId);
+      scheduleIdleClose(context?.traceId);
+    }
   })();
 
   try {
