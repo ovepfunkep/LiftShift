@@ -29,9 +29,8 @@ const LOADING_MESSAGES = [
   'Calculating display data...',
   'Rendering the interface...',
   'Final touches...',
-  'Just few seconds...(don\'t reload, hevy login is slow)',
+  'Just a few seconds... (hevy login can be slow)',
   'Almost ready...',
- 
 ];
 
 const ROW_HEIGHT = 36;

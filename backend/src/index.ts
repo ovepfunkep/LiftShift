@@ -10,7 +10,10 @@ import { createHevyProRouter } from './routes/hevyProRoutes';
 import { createLyftaRouter } from './routes/lyftaRoutes';
 
 const PORT = Number(process.env.PORT ?? 5000);
-const STARTUP_RECAPTCHA_WARMUP_ENABLED = true;
+const STARTUP_RECAPTCHA_WARMUP_ENABLED = false;
+
+// Server state tracking (minimal)
+let firstRequestReceived = false;
 
 const app = express();
 
@@ -123,7 +126,11 @@ const requireAuthTokenHeader = (req: express.Request): string => {
 };
 
 app.get('/api/health', (_req, res) => {
-  console.log('[System] Health check - server awake');
+  if (!firstRequestReceived) {
+    firstRequestReceived = true;
+    console.log('[Server] 🚀 Cold start - first request received');
+  }
+
   const memUsage = process.memoryUsage();
   res.json({
     status: 'ok',
@@ -150,7 +157,7 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 });
 
 const server = app.listen(PORT, () => {
-  console.log(`LiftShift backend listening on :${PORT}`);
+  console.log(`🟢 LiftShift backend listening on :${PORT}`);
 
   if (STARTUP_RECAPTCHA_WARMUP_ENABLED) {
     const warmupTimer = setTimeout(() => {
@@ -173,10 +180,10 @@ const shutdown = async (signal: string, exitCode = 0) => {
   if (shuttingDown) return;
   shuttingDown = true;
 
-  console.log(`[Server] Received ${signal}, shutting down gracefully...`);
+  console.log(`[Server] ⛔ Received ${signal}, shutting down gracefully...`);
 
   const forceExitTimer = setTimeout(() => {
-    console.error('[Server] Force exiting after shutdown timeout');
+    console.error('[Server] 💀 Force exiting after shutdown timeout');
     process.exit(1);
   }, 10_000);
   forceExitTimer.unref();
@@ -185,26 +192,26 @@ const shutdown = async (signal: string, exitCode = 0) => {
     await new Promise<void>((resolve) => {
       server.close(() => resolve());
     });
-    console.log('[Server] HTTP server closed');
+    console.log('[Server] 🔒 HTTP server closed');
   } catch (err) {
     console.error('[Server] Error closing HTTP server:', err);
   }
 
   try {
     await shutdownPosthog();
-    console.log('[Server] PostHog shutdown complete');
+    console.log('[Server] 📊 PostHog shutdown complete');
   } catch (err) {
     console.error('[Server] Error during PostHog shutdown:', err);
   }
 
   try {
     await shutdownRecaptchaSession();
-    console.log('[Server] Recaptcha session shutdown complete');
+    console.log('[Server] 🤖 Recaptcha session shutdown complete');
   } catch (err) {
     console.error('[Server] Error during recaptcha session shutdown:', err);
   }
 
-  console.log('[Server] Graceful shutdown complete');
+  console.log('[Server] 👋 Graceful shutdown complete');
   clearTimeout(forceExitTimer);
   process.exit(exitCode);
 };

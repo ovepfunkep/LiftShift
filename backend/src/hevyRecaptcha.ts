@@ -8,22 +8,10 @@ const BROWSER_MAX_USE_COUNT = 100;
 const IDLE_CLOSE_MS = 4 * 60 * 1000;
 // Keep one active page on low-CPU instances to avoid page-load contention.
 const MAX_PAGES = 1;
-const TOKEN_TTL_MS = 60_000;
 
 type RecaptchaContext = {
   traceId?: string;
-  cacheKey?: string;
-  allowCached?: boolean;
-  cacheResult?: boolean;
 };
-
-type CachedToken = {
-  token: string;
-  expiresAt: number;
-};
-
-const tokenCache = new Map<string, CachedToken>();
-let cacheCleanupTimer: ReturnType<typeof setInterval> | null = null;
 
 let browserInitInFlight: Promise<void> | null = null;
 let browser: Browser | null = null;
@@ -36,7 +24,6 @@ const activePages = new Set<Page>();
 const pageWaiters: Array<() => void> = [];
 let pageCreationReservations = 0;
 let sessionWarmupInFlight: Promise<void> | null = null;
-const tokenWarmupByKey = new Map<string, Promise<void>>();
 
 const now = (): number => Date.now();
 
@@ -48,26 +35,29 @@ const safeErrorMessage = (err: unknown): string =>
 
 const formatDuration = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
 
-const logWarmToken = (action: 'hit' | 'store', cacheKey: string | null | undefined, traceId?: string): void => {
-  if (!cacheKey) return;
-  const prefix = traceId ? `[User][${traceId}]` : '[User]';
-  if (action === 'hit') {
-    console.log(`${prefix} Recaptcha token reused for ${cacheKey}`);
-    return;
-  }
-  console.log(`${prefix} Recaptcha token prepared for ${cacheKey}`);
+// Operation tracking for better logging
+const activeOperations = new Map<string, number>();
+
+const logOperationStart = (operation: string, traceId?: string): void => {
+  const prefix = traceId ? `[User][${traceId}]` : '[System]';
+  const key = traceId ? `${operation}:${traceId}` : operation;
+  activeOperations.set(key, now());
+  console.log(`${prefix} ▶️  ${operation} START`);
+};
+
+const logOperationEnd = (operation: string, traceId?: string): void => {
+  const prefix = traceId ? `[User][${traceId}]` : '[System]';
+  const key = traceId ? `${operation}:${traceId}` : operation;
+  const startTime = activeOperations.get(key);
+  const duration = startTime ? now() - startTime : 0;
+  activeOperations.delete(key);
+  console.log(`${prefix} ✅ ${operation} END (${formatDuration(duration)})`);
 };
 
 const logQueue = (position: number, waitMs: number, traceId?: string): void => {
   if (position <= 0 || waitMs < 100) return;
   const prefix = traceId ? `[User][${traceId}]` : '[User]';
-  console.log(`${prefix} Queued #${position}, waited ${formatDuration(waitMs)}`);
-};
-
-const normalizeKey = (key?: string): string | null => {
-  const trimmed = key?.trim();
-  if (!trimmed) return null;
-  return trimmed.toLowerCase();
+  console.log(`${prefix} ⏳ CAPTCHA busy, waiting #${position} (${formatDuration(waitMs)})`);
 };
 
 const clearIdleCloseTimer = (): void => {
@@ -91,42 +81,9 @@ const scheduleIdleClose = (traceId?: string): void => {
   idleCloseTimer.unref();
 };
 
-const ensureCacheCleanupTimer = (): void => {
-  if (cacheCleanupTimer) return;
-  cacheCleanupTimer = setInterval(() => {
-    const time = now();
-    for (const [key, value] of tokenCache) {
-      if (value.expiresAt <= time) tokenCache.delete(key);
-    }
-  }, Math.max(30_000, Math.min(TOKEN_TTL_MS, 60_000)));
-  cacheCleanupTimer.unref();
-};
 
-const getCachedToken = (cacheKey?: string | null): string | null => {
-  if (!cacheKey) return null;
-  const cached = tokenCache.get(cacheKey);
-  if (!cached) return null;
-  if (cached.expiresAt <= now()) {
-    tokenCache.delete(cacheKey);
-    return null;
-  }
-  return cached.token;
-};
-
-const takeCachedToken = (cacheKey?: string | null): string | null => {
-  const token = getCachedToken(cacheKey);
-  if (!token || !cacheKey) return null;
-  tokenCache.delete(cacheKey);
-  return token;
-};
-
-const storeCachedToken = (cacheKey: string | null, token: string): void => {
-  if (!cacheKey) return;
-  tokenCache.set(cacheKey, { token, expiresAt: now() + TOKEN_TTL_MS });
-  ensureCacheCleanupTimer();
-};
-
-const launchBrowser = async (): Promise<Browser> => {
+const launchBrowser = async (traceId?: string): Promise<Browser> => {
+  const prefix = traceId ? `[User][${traceId}]` : '[System]';
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
   const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
     headless: true,
@@ -149,8 +106,11 @@ const launchBrowser = async (): Promise<Browser> => {
       '--disable-sync',
     ],
   };
-  console.log('[System] Browser cold start (launching)');
-  return puppeteer.launch(launchOptions);
+  logOperationStart('Browser launch (cold start)', traceId);
+  console.log(`${prefix} 🚀 Launching Chromium browser...`);
+  const browser = await puppeteer.launch(launchOptions);
+  logOperationEnd('Browser launch (cold start)', traceId);
+  return browser;
 };
 
 const isPageClosed = (p: Page | null): boolean => {
@@ -178,6 +138,7 @@ const closePage = async (p: Page, reason: string, traceId?: string): Promise<voi
 
 const closeBrowser = async (reason: string, traceId?: string): Promise<void> => {
   const prefix = getTracePrefix(traceId);
+  console.log(`${prefix} 🛑 Closing browser (reason: ${reason})`);
   clearIdleCloseTimer();
   const activeBrowser = browser;
   const pages = Array.from(openPages);
@@ -197,9 +158,9 @@ const closeBrowser = async (reason: string, traceId?: string): Promise<void> => 
   if (activeBrowser) {
     try {
       await activeBrowser.close();
-      console.log(`${prefix} Browser closed (${reason})`);
+      console.log(`${prefix} ✅ Browser closed successfully (${reason})`);
     } catch (err) {
-      console.warn(`${prefix} Failed to close browser during ${reason}:`, safeErrorMessage(err));
+      console.warn(`${prefix} ❌ Failed to close browser during ${reason}:`, safeErrorMessage(err));
     }
   }
 
@@ -219,17 +180,17 @@ const needsBrowserRecycle = (): boolean => {
 const ensureRecaptchaLoaded = async (p: Page, traceId?: string, forceReload = false): Promise<void> => {
   const prefix = getTracePrefix(traceId);
   const ready = await p.evaluate(() => Boolean((window as any).grecaptcha?.enterprise));
-  if (ready && !forceReload) return;
+  if (ready && !forceReload) {
+    console.log(`${prefix} 📄 Page already loaded with reCAPTCHA ready`);
+    return;
+  }
 
-  const startedAt = now();
+  logOperationStart('Page load (hevy.com + reCAPTCHA)', traceId);
   await p.goto(HEVY_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: RECAPTCHA_TIMEOUT_MS });
   await p.waitForFunction(() => Boolean((window as any).grecaptcha?.enterprise), {
     timeout: RECAPTCHA_TIMEOUT_MS,
   });
-  const elapsed = now() - startedAt;
-  if (elapsed > 1000) {
-    console.log(`${prefix} Page load took ${formatDuration(elapsed)}`);
-  }
+  logOperationEnd('Page load (hevy.com + reCAPTCHA)', traceId);
 };
 
 const ensureBrowser = async (traceId?: string): Promise<void> => {
@@ -241,15 +202,14 @@ const ensureBrowser = async (traceId?: string): Promise<void> => {
   const prefix = getTracePrefix(traceId);
   browserInitInFlight = (async () => {
     if (needsBrowserRecycle()) {
+      console.log(`${prefix} ♻️  Browser needs recycling (age/use count)`);
       await closeBrowser('recycle', traceId);
     }
 
     if (!browser || !browser.isConnected()) {
-      const launchStartedAt = now();
-      browser = await launchBrowser();
+      browser = await launchBrowser(traceId);
       browserCreatedAt = now();
       browserUseCount = 0;
-      console.log(`${prefix} Browser ready in ${formatDuration(now() - launchStartedAt)}`);
     }
   })();
 
@@ -350,7 +310,9 @@ const executeRecaptcha = async (p: Page): Promise<string> => {
 
 const fetchRecaptchaToken = async (context?: RecaptchaContext): Promise<string> => {
   const traceId = context?.traceId;
-  const startedAt = now();
+  const userPrefix = traceId ? `[User][${traceId}]` : '[User]';
+  
+  logOperationStart('Full auth flow (browser → CAPTCHA)', traceId);
 
   const { page, isStandby, queueMs, queuePosition } = await acquirePage(traceId);
 
@@ -359,16 +321,20 @@ const fetchRecaptchaToken = async (context?: RecaptchaContext): Promise<string> 
   try {
     let token: string;
     try {
+      logOperationStart('CAPTCHA execution', traceId);
       token = await executeRecaptcha(page);
+      logOperationEnd('CAPTCHA execution', traceId);
     } catch {
+      console.log(`${userPrefix} ⚠️  CAPTCHA execution failed, reloading page...`);
       await ensureRecaptchaLoaded(page, traceId, true);
+      logOperationStart('CAPTCHA execution (retry)', traceId);
       token = await executeRecaptcha(page);
+      logOperationEnd('CAPTCHA execution (retry)', traceId);
     }
 
     browserUseCount += 1;
-    const totalMs = now() - startedAt;
-    const userPrefix = traceId ? `[User][${traceId}]` : '[User]';
-    console.log(`${userPrefix} Auth ready${isStandby ? ' (standby)' : ''} in ${formatDuration(totalMs)}`);
+    logOperationEnd('Full auth flow (browser → CAPTCHA)', traceId);
+    console.log(`${userPrefix} 🔑 Auth token obtained${isStandby ? ' using standby page' : ''}`);
     return token;
   } finally {
     await releasePage(page, traceId);
@@ -376,51 +342,7 @@ const fetchRecaptchaToken = async (context?: RecaptchaContext): Promise<string> 
 };
 
 export const getRecaptchaToken = async (context?: RecaptchaContext): Promise<string> => {
-  const cacheKey = normalizeKey(context?.cacheKey);
-  if (context?.allowCached !== false) {
-    const cached = takeCachedToken(cacheKey);
-    if (cached) {
-      logWarmToken('hit', cacheKey, context?.traceId);
-      return cached;
-    }
-  }
-  const token = await fetchRecaptchaToken(context);
-  if (context?.cacheResult) {
-    storeCachedToken(cacheKey, token);
-    logWarmToken('store', cacheKey, context?.traceId);
-  }
-  return token;
-};
-
-export const warmRecaptchaToken = async (context?: RecaptchaContext): Promise<void> => {
-  const cacheKey = normalizeKey(context?.cacheKey);
-  if (cacheKey && getCachedToken(cacheKey)) return;
-
-  if (cacheKey) {
-    const inFlight = tokenWarmupByKey.get(cacheKey);
-    if (inFlight) {
-      await inFlight;
-      return;
-    }
-  }
-
-  const warmupPromise = (async () => {
-    const token = await fetchRecaptchaToken(context);
-    storeCachedToken(cacheKey, token);
-    logWarmToken('store', cacheKey, context?.traceId);
-  })();
-
-  if (!cacheKey) {
-    await warmupPromise;
-    return;
-  }
-
-  tokenWarmupByKey.set(cacheKey, warmupPromise);
-  try {
-    await warmupPromise;
-  } finally {
-    tokenWarmupByKey.delete(cacheKey);
-  }
+  return fetchRecaptchaToken(context);
 };
 
 export const warmRecaptchaSession = async (context?: RecaptchaContext): Promise<void> => {
@@ -449,7 +371,6 @@ export const shutdownRecaptchaSession = async (): Promise<void> => {
 };
 
 export const clearTokenCache = (): void => {
-  tokenCache.clear();
   void closeBrowser('manual_clear').catch((err) => {
     console.warn('[Puppeteer] Failed to clear browser state:', safeErrorMessage(err));
   });

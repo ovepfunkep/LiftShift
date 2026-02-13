@@ -1,6 +1,6 @@
 import express from 'express';
 import { hevyGetAccount, hevyGetWorkoutsPaged, hevyLogin, hevyRefreshToken, hevyValidateAuthToken } from '../hevyApi';
-import { warmRecaptchaSession, warmRecaptchaToken } from '../hevyRecaptcha';
+import { warmRecaptchaSession } from '../hevyRecaptcha';
 import { mapHevyWorkoutsToWorkoutSets } from '../mapToWorkoutSets';
 
 const createTraceId = (): string => {
@@ -39,15 +39,15 @@ export const createHevyRouter = (opts: {
         user_id: data.user_id,
         expires_at: data.expires_at,
       });
-      console.log(`[User][${traceId}] Login successful in ${formatDuration(durationMs)}`);
+      console.log(`[User][${traceId}] ✅ Login successful (${formatDuration(durationMs)})`);
 
       // Log user profile asynchronously to avoid delaying response
       void (async () => {
         try {
           const account = await hevyGetAccount(data.auth_token);
           const profileUrl = `https://hevy.com/user/${account.username}`;
-          const displayEmail = emailOrUsername.includes('@') ? emailOrUsername : (account.email || '');
-          console.log(`[User][${traceId}] ${account.full_name || account.username} (@${account.username}) ${displayEmail} ${profileUrl}`);
+          const displayEmail = emailOrUsername?.includes('@') ? emailOrUsername : (account.email || '');
+          console.log(`[User][${traceId}] 👤 ${account.full_name || account.username} (@${account.username}) ${displayEmail} ${profileUrl}`);
         } catch {
           // Silent fail - not critical for login
         }
@@ -56,7 +56,7 @@ export const createHevyRouter = (opts: {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Login failed';
       const durationMs = Date.now() - startedAt;
-      console.error(`[User][${traceId}] Login failed for ${emailOrUsername}: ${message} (${formatDuration(durationMs)})`);
+      console.error(`[User][${traceId}] ❌ Login failed for ${emailOrUsername}: ${message} (${formatDuration(durationMs)})`);
       if (status === 401) {
         return res.status(401).json({
           error: `${message}.`,
@@ -82,14 +82,14 @@ export const createHevyRouter = (opts: {
     }
   });
 
-  // Backward-compatible endpoint. Kept for clients that still warm a token directly.
+  // Backward-compatible endpoint. Kept for clients that still call the old warmup route.
   router.post('/recaptcha/warmup', async (req, res) => {
     const traceId = createTraceId();
     const emailOrUsername = String(req.body?.emailOrUsername ?? '').trim();
     if (!emailOrUsername) return res.status(400).json({ error: 'Missing emailOrUsername' });
 
     try {
-      await warmRecaptchaToken({ traceId, cacheKey: emailOrUsername });
+      await warmRecaptchaSession({ traceId });
       res.json({ warmed: true });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
@@ -135,7 +135,7 @@ export const createHevyRouter = (opts: {
         user_id: data.user_id,
         expires_at: data.expires_at,
       });
-      console.log(`[User][${traceId}] Refresh successful in ${formatDuration(durationMs)}`);
+      console.log(`[User][${traceId}] 🔄 Refresh successful (${formatDuration(durationMs)})`);
 
       // Log user profile asynchronously to avoid delaying response
       void (async () => {
@@ -143,7 +143,7 @@ export const createHevyRouter = (opts: {
           const account = await hevyGetAccount(data.auth_token);
           const profileUrl = `https://hevy.com/user/${account.username}`;
           const displayEmail = emailOrUsername?.includes('@') ? emailOrUsername : (account.email || '');
-          console.log(`[User][${traceId}] ${account.full_name || account.username} (@${account.username}) ${displayEmail} ${profileUrl}`);
+          console.log(`[User][${traceId}] 👤 ${account.full_name || account.username} (@${account.username}) ${displayEmail} ${profileUrl}`);
         } catch {
           // Silent fail - not critical for refresh
         }
@@ -152,7 +152,7 @@ export const createHevyRouter = (opts: {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Refresh failed';
       const durationMs = Date.now() - startedAt;
-      console.error(`[User][${traceId}] Refresh failed for ${emailOrUsername || 'unknown'}: ${message} (${formatDuration(durationMs)})`);
+      console.error(`[User][${traceId}] ❌ Refresh failed for ${emailOrUsername || 'unknown'}: ${message} (${formatDuration(durationMs)})`);
       if (status === 401) {
         return res.status(401).json({ error: message });
       }

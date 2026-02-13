@@ -75,8 +75,6 @@ export const hevyLogin = async (
   const recaptchaStartedAt = Date.now();
   const recaptchaToken = await getRecaptchaToken({
     traceId: context.traceId,
-    cacheKey: emailOrUsername,
-    allowCached: true,
   });
   const recaptchaDurationMs = Date.now() - recaptchaStartedAt;
 

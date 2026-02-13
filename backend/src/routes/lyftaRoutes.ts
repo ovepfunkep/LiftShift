@@ -25,20 +25,20 @@ export const createLyftaRouter = (opts: {
       return res.status(400).json({ error: 'Missing apiKey' });
     }
 
-    console.log(`[User][${traceId}] Lyfta validation started`);
+    console.log(`[User][${traceId}] 🔑 Lyfta validation started`);
 
     try {
       const valid = await lyfatValidateApiKey(apiKey);
       if (valid) {
-        console.log(`[User][${traceId}] Lyfta validation success`);
+        console.log(`[User][${traceId}] ✅ Lyfta validation success`);
       } else {
-        console.log(`[User][${traceId}] Lyfta validation failed: Invalid API key`);
+        console.log(`[User][${traceId}] ❌ Lyfta validation failed: Invalid API key`);
       }
       res.json({ valid });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Validation failed';
-      console.error(`[User][${traceId}] Lyfta validation error: ${message}`);
+      console.error(`[User][${traceId}] 💥 Lyfta validation error: ${message}`);
       res.status(status).json({ error: message });
     }
   });
@@ -65,16 +65,16 @@ export const createLyftaRouter = (opts: {
 
       const durationMs = Date.now() - startedAt;
       res.json({ sets, meta: { workouts: workouts.length } });
-      console.log(`[User][${traceId}] Lyfta sync successful in ${formatDuration(durationMs)}`);
+      console.log(`[User][${traceId}] ✅ Lyfta sync successful (${formatDuration(durationMs)})`);
 
       // Log username for debugging
       const username = workouts[0]?.user?.username || 'unknown';
-      console.log(`[User][${traceId}] lyfta_${username}`);
+      console.log(`[User][${traceId}] 👤 lyfta_${username}`);
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Failed to fetch sets';
       const durationMs = Date.now() - startedAt;
-      console.error(`[User][${traceId}] Lyfta sync failed in ${formatDuration(durationMs)}: ${message}`);
+      console.error(`[User][${traceId}] ❌ Lyfta sync failed (${formatDuration(durationMs)}): ${message}`);
       res.status(status).json({ error: message });
     }
   });

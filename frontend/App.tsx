@@ -19,13 +19,12 @@ import { useAppPreferences } from './hooks/app';
 import { AppFilterControls } from './app/ui';
 import { AppShell } from './app/ui';
 import { useAppSideEffects } from './app/state';
-import { backendWakeup } from './utils/api/hevyBackend';
 import { useAppDerivedData } from './app/state';
+import { useBackendWakeup } from './hooks/useBackendWakeup';
 import { useCalendarSelectionHandlers } from './app/state';
 import { useUpdateFlowHandler } from './app/auth';
 
 const CHUNK_RELOAD_KEY = 'liftshift_chunk_reload_once';
-const BACKEND_WAKEUP_KEY = 'liftshift_backend_wakeup_once';
 
 const CHUNK_LOAD_ERROR_PATTERNS = [
   'dynamically imported module',
@@ -63,35 +62,8 @@ const App: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    let triggered = false;
-
-    const handleWakeup = () => {
-      if (triggered) return;
-      try {
-        if (sessionStorage.getItem(BACKEND_WAKEUP_KEY) === '1') return;
-        sessionStorage.setItem(BACKEND_WAKEUP_KEY, '1');
-      } catch {
-        // ignore
-      }
-      triggered = true;
-      void backendWakeup();
-    };
-
-    const handlePointer = () => handleWakeup();
-    const handleKey = () => handleWakeup();
-    const handleScroll = () => handleWakeup();
-
-    window.addEventListener('pointerdown', handlePointer, { passive: true });
-    window.addEventListener('keydown', handleKey, { passive: true });
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('pointerdown', handlePointer);
-      window.removeEventListener('keydown', handleKey);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
+  // Wake up backend on any user interaction (scroll, click, type, etc.)
+  useBackendWakeup();
 
   useEffect(() => {
     const onVitePreloadError = (event: Event) => {

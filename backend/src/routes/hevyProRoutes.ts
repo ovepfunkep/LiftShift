@@ -28,20 +28,20 @@ export const createHevyProRouter = (opts: {
 
     if (!apiKey) return res.status(400).json({ error: 'Missing apiKey' });
 
-    console.log(`[User][${traceId}] Hevy Pro validation started`);
+    console.log(`[User][${traceId}] 🔑 Hevy Pro validation started`);
 
     try {
       const valid = await hevyProValidateApiKey(apiKey);
       if (valid) {
-        console.log(`[User][${traceId}] Hevy Pro validation success`);
+        console.log(`[User][${traceId}] ✅ Hevy Pro validation success`);
       } else {
-        console.log(`[User][${traceId}] Hevy Pro validation failed: Invalid API key`);
+        console.log(`[User][${traceId}] ❌ Hevy Pro validation failed: Invalid API key`);
       }
       res.json({ valid });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Validate failed';
-      console.error(`[User][${traceId}] Hevy Pro validation error: ${message}`);
+      console.error(`[User][${traceId}] 💥 Hevy Pro validation error: ${message}`);
       res.status(status).json({ error: message });
     }
   });
@@ -67,13 +67,13 @@ export const createHevyProRouter = (opts: {
 
       const durationMs = Date.now() - startedAt;
       res.json({ sets, meta: { workouts: workouts.length } });
-      console.log(`[User][${traceId}] Hevy Pro sync successful in ${formatDuration(durationMs)}`);
-      console.log(`[User][${traceId}] ${userInfo.data.name || username} (@${username}) ${userInfo.data.url}`);
+      console.log(`[User][${traceId}] ✅ Hevy Pro sync successful (${formatDuration(durationMs)})`);
+      console.log(`[User][${traceId}] 👤 ${userInfo.data.name || username} (@${username}) ${userInfo.data.url}`);
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Failed to fetch sets';
       const durationMs = Date.now() - startedAt;
-      console.error(`[User][${traceId}] Hevy Pro sync failed in ${formatDuration(durationMs)}: ${message}`);
+      console.error(`[User][${traceId}] ❌ Hevy Pro sync failed (${formatDuration(durationMs)}): ${message}`);
       res.status(status).json({ error: message });
     }
   });
