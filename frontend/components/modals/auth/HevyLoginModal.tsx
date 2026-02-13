@@ -80,21 +80,16 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
     return expires > Date.now() + 60_000;
   };
 
-  const maybeWarmup = (value: string, force = false) => {
+  const maybeWarmup = () => {
     if (warmupTriggeredRef.current) return;
-    if (!force && (!value || value.trim().length === 0)) return;
     if (hasValidToken()) return;
     warmupTriggeredRef.current = true;
-    console.log('[HevyLogin] 🔥 Starting browser warmup on first user input');
-    void hevyBackendWarmupSession(value.trim());
+    console.log('[HevyLogin] 💻 Starting browser warmup on field focus');
+    void hevyBackendWarmupSession(emailOrUsername.trim() || ' warmup');
   };
 
   const handleUsernameChange = (value: string) => {
     setEmailOrUsername(value);
-    // Only trigger warmup when user has typed something meaningful (not on empty)
-    if (value.trim().length > 0) {
-      maybeWarmup(value);
-    }
   };
 
   return (
@@ -182,7 +177,7 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
                     <input
                       name="username"
                       value={emailOrUsername}
-                      onFocus={() => maybeWarmup(emailOrUsername, true)}
+                      onFocus={() => maybeWarmup()}
                       onChange={(e) => handleUsernameChange(e.target.value)}
                       disabled={isLoading}
                       className="mt-1 w-full h-10 rounded-md bg-slate-900/20 border border-slate-700/60 px-3 text-sm text-slate-200 placeholder:text-slate-500 outline-none focus:border-emerald-500/60"
@@ -198,10 +193,10 @@ export const HevyLoginModal: React.FC<HevyLoginModalProps> = ({
                       name="password"
                       type="password"
                       value={password}
+                      onFocus={() => maybeWarmup()}
                       onChange={(e) => {
                         passwordTouchedRef.current = true;
                         setPassword(e.target.value);
-                        maybeWarmup(emailOrUsername);
                       }}
                       disabled={isLoading}
                       className="mt-1 w-full h-10 rounded-md bg-slate-900/20 border border-slate-700/60 px-3 text-sm text-slate-200 placeholder:text-slate-500 outline-none focus:border-emerald-500/60"

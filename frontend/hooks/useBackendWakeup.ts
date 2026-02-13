@@ -21,14 +21,14 @@ export const useBackendWakeup = (): void => {
   const hasPingedRef = useRef(false);
 
   useEffect(() => {
-    const pingBackend = async () => {
+    const pingBackend = async (triggerType: string) => {
       if (hasPingedRef.current) return;
       hasPingedRef.current = true;
 
-      console.log('[Frontend] ☀️ First interaction - waking up backend...');
+      console.log(`[Frontend] ☀️ First interaction (${triggerType}) - waking up backend...`);
 
       try {
-        await backendWakeup(PING_TIMEOUT_MS);
+        await backendWakeup(PING_TIMEOUT_MS, triggerType);
         // Backend will log if it was cold start, no need for frontend to log success
       } catch {
         // Silent fail - backend being down is not critical at this point
@@ -40,11 +40,12 @@ export const useBackendWakeup = (): void => {
       });
     };
 
-    const handleInteraction = () => {
+    const handleInteraction = (event: Event) => {
+      const triggerType = event.type;
       if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(() => pingBackend(), { timeout: 1000 });
+        window.requestIdleCallback(() => pingBackend(triggerType), { timeout: 1000 });
       } else {
-        setTimeout(() => pingBackend(), 100);
+        setTimeout(() => pingBackend(triggerType), 100);
       }
     };
 

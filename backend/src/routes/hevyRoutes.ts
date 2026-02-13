@@ -25,13 +25,19 @@ export const createHevyRouter = (opts: {
     const emailOrUsername = String(req.body?.emailOrUsername ?? '').trim();
     const password = String(req.body?.password ?? '');
 
+    console.log(`[User][${traceId}] 📥 Login request received for: ${emailOrUsername}`);
+
     if (!emailOrUsername || !password) {
+      console.log(`[User][${traceId}] ❌ Missing credentials`);
       return res.status(400).json({ error: 'Missing emailOrUsername or password' });
     }
 
     try {
+      console.log(`[User][${traceId}] 🔐 Starting Hevy login flow...`);
       const data = await hevyLogin(emailOrUsername, password, { traceId });
       const durationMs = Date.now() - startedAt;
+      console.log(`[User][${traceId}] ✅ Hevy API login successful (${formatDuration(durationMs)})`);
+      
       res.json({
         auth_token: data.auth_token,
         access_token: data.access_token,
@@ -39,7 +45,7 @@ export const createHevyRouter = (opts: {
         user_id: data.user_id,
         expires_at: data.expires_at,
       });
-      console.log(`[User][${traceId}] ✅ Login successful (${formatDuration(durationMs)})`);
+      console.log(`[User][${traceId}] 📤 Login response sent to client`);
 
       // Log user profile asynchronously to avoid delaying response
       void (async () => {
@@ -73,14 +79,22 @@ export const createHevyRouter = (opts: {
   router.post('/recaptcha/session-warmup', async (req, res) => {
     const traceId = createTraceId();
     const emailOrUsername = String(req.body?.emailOrUsername ?? '').trim();
-    if (!emailOrUsername) return res.status(400).json({ error: 'Missing emailOrUsername' });
+    console.log(`[User][${traceId}] 🌡️ Session warmup requested for: ${emailOrUsername}`);
+    
+    if (!emailOrUsername) {
+      console.log(`[User][${traceId}] ❌ Missing emailOrUsername in warmup`);
+      return res.status(400).json({ error: 'Missing emailOrUsername' });
+    }
 
     try {
+      console.log(`[User][${traceId}] 🔥 Starting session warmup...`);
       await warmRecaptchaSession({ traceId });
+      console.log(`[User][${traceId}] ✅ Session warmup completed`);
       res.json({ warmed: true });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Session warmup failed';
+      console.error(`[User][${traceId}] ❌ Session warmup failed: ${message}`);
       res.status(status).json({ error: message });
     }
   });
@@ -89,14 +103,22 @@ export const createHevyRouter = (opts: {
   router.post('/recaptcha/warmup', async (req, res) => {
     const traceId = createTraceId();
     const emailOrUsername = String(req.body?.emailOrUsername ?? '').trim();
-    if (!emailOrUsername) return res.status(400).json({ error: 'Missing emailOrUsername' });
+    console.log(`[User][${traceId}] 🌡️ Legacy warmup requested for: ${emailOrUsername}`);
+    
+    if (!emailOrUsername) {
+      console.log(`[User][${traceId}] ❌ Missing emailOrUsername in legacy warmup`);
+      return res.status(400).json({ error: 'Missing emailOrUsername' });
+    }
 
     try {
+      console.log(`[User][${traceId}] 🔥 Starting legacy warmup...`);
       await warmRecaptchaSession({ traceId });
+      console.log(`[User][${traceId}] ✅ Legacy warmup completed`);
       res.json({ warmed: true });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Warmup failed';
+      console.error(`[User][${traceId}] ❌ Legacy warmup failed: ${message}`);
       res.status(status).json({ error: message });
     }
   });
@@ -124,13 +146,19 @@ export const createHevyRouter = (opts: {
     const matchedAuth = authHeader?.match(/^Bearer\s+(.+)$/i);
     const authToken = bodyAuthToken || (matchedAuth?.[1]?.trim() ?? '');
 
+    console.log(`[User][${traceId}] 🔄 Refresh token request received for: ${emailOrUsername || 'unknown'}`);
+
     if (!refreshToken) {
+      console.log(`[User][${traceId}] ❌ Missing refresh_token`);
       return res.status(400).json({ error: 'Missing refresh_token' });
     }
 
     try {
+      console.log(`[User][${traceId}] 🔄 Calling Hevy refresh API...`);
       const data = await hevyRefreshToken(refreshToken, authToken || undefined, { traceId });
       const durationMs = Date.now() - startedAt;
+      console.log(`[User][${traceId}] ✅ Hevy refresh successful (${formatDuration(durationMs)})`);
+      
       res.json({
         auth_token: data.auth_token,
         access_token: data.access_token,
@@ -138,7 +166,7 @@ export const createHevyRouter = (opts: {
         user_id: data.user_id,
         expires_at: data.expires_at,
       });
-      console.log(`[User][${traceId}] 🔄 Refresh successful (${formatDuration(durationMs)})`);
+      console.log(`[User][${traceId}] 📤 Refresh response sent to client`);
 
       // Log user profile asynchronously to avoid delaying response
       void (async () => {
@@ -192,41 +220,68 @@ export const createHevyRouter = (opts: {
   });
 
   router.get('/sets', async (req, res) => {
+    const traceId = createTraceId();
+    const startedAt = Date.now();
     const username = String(req.query.username ?? '').trim();
     const maxPages = req.query.maxPages != null ? Number(req.query.maxPages) : undefined;
 
-    if (!username) return res.status(400).json({ error: 'Missing username' });
+    console.log(`[User][${traceId}] 📊 Sets fetch requested for: ${username}`);
+
+    if (!username) {
+      console.log(`[User][${traceId}] ❌ Missing username`);
+      return res.status(400).json({ error: 'Missing username' });
+    }
     if (maxPages != null && (!Number.isFinite(maxPages) || maxPages <= 0)) {
+      console.log(`[User][${traceId}] ❌ Invalid maxPages: ${maxPages}`);
       return res.status(400).json({ error: 'Invalid maxPages' });
     }
 
     try {
       const token = requireAuthTokenHeader(req);
       const cacheKey = `hevySets:${token}:${username}:${maxPages ?? 'all'}`;
+      console.log(`[User][${traceId}] 💾 Checking cache for: ${cacheKey}`);
+      
       const { workouts, sets } = await getCachedResponse(cacheKey, async () => {
+        console.log(`[User][${traceId}] 🌐 Cache miss - fetching from Hevy API...`);
         const allWorkouts = [] as any[];
         let offset = 0;
         let page = 0;
 
         while (true) {
-          if (maxPages != null && page >= maxPages) break;
+          if (maxPages != null && page >= maxPages) {
+            console.log(`[User][${traceId}] 📄 Reached maxPages limit: ${maxPages}`);
+            break;
+          }
 
+          console.log(`[User][${traceId}] 📄 Fetching page ${page + 1} (offset: ${offset})...`);
           const data = await hevyGetWorkoutsPaged(token, { username, offset });
           const workouts = data.workouts ?? [];
-          if (workouts.length === 0) break;
+          console.log(`[User][${traceId}] 📄 Got ${workouts.length} workouts on page ${page + 1}`);
+          
+          if (workouts.length === 0) {
+            console.log(`[User][${traceId}] 📄 No more workouts - pagination complete`);
+            break;
+          }
 
           allWorkouts.push(...workouts);
           offset += 5;
           page += 1;
         }
 
+        console.log(`[User][${traceId}] 📊 Total workouts fetched: ${allWorkouts.length}`);
         const sets = mapHevyWorkoutsToWorkoutSets(allWorkouts);
+        console.log(`[User][${traceId}] 📊 Mapped to ${sets.length} workout sets`);
         return { workouts: allWorkouts, sets };
       });
+      
+      const durationMs = Date.now() - startedAt;
+      console.log(`[User][${traceId}] ✅ Sets fetch completed (${formatDuration(durationMs)}) - ${sets.length} sets from ${workouts.length} workouts`);
       res.json({ sets, meta: { workouts: workouts.length } });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
-      res.status(status).json({ error: (err as Error).message || 'Failed to fetch sets' });
+      const message = (err as Error).message || 'Failed to fetch sets';
+      console.error(`[User][${traceId}] ❌ Sets fetch failed: ${message}`);
+      res.status(status).json({ error: message });
     }
   });
 

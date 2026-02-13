@@ -158,9 +158,15 @@ export const hevyBackendWarmupSession = async (
   return Boolean(json.warmed);
 };
 
-export const backendWakeup = async (timeoutMs: number = 12_000): Promise<boolean> => {
+export const backendWakeup = async (timeoutMs: number = 12_000, triggerType?: string): Promise<boolean> => {
   try {
-    const res = await fetchWithTimeout(buildBackendUrl('/api/health'), undefined, timeoutMs);
+    const headers: Record<string, string> = {};
+    if (triggerType) {
+      headers['x-interaction-type'] = triggerType;
+    }
+    const res = await fetchWithTimeout(buildBackendUrl('/api/health'), {
+      headers: mergeAnalyticsHeaders(headers),
+    }, timeoutMs);
     return res.ok;
   } catch {
     return false;

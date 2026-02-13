@@ -72,18 +72,18 @@ export const hevyLogin = async (
 ): Promise<HevyLoginResponse> => {
   const trace = getTraceLabel(context.traceId);
   const startedAt = Date.now();
+  console.log(`${trace} 🎫 Getting reCAPTCHA token...`);
   const recaptchaStartedAt = Date.now();
   const recaptchaToken = await getRecaptchaToken({
     traceId: context.traceId,
   });
   const recaptchaDurationMs = Date.now() - recaptchaStartedAt;
+  console.log(`${trace} ✅ Got reCAPTCHA token in ${formatDuration(recaptchaDurationMs)}`);
 
   const headers = buildHeaders();
-
   const body = { emailOrUsername, password, recaptchaToken, useAuth2_0: true };
 
-  // Request logging removed - route-level logging captures user flow
-
+  console.log(`${trace} 📡 Calling Hevy /login API...`);
   const requestStartedAt = Date.now();
   let res: Response;
   try {
@@ -94,18 +94,22 @@ export const hevyLogin = async (
       signal: timeoutSignal(HEVY_LOGIN_TIMEOUT_MS),
     });
   } catch (err) {
+    console.error(`${trace} ❌ Network error calling Hevy API: ${(err as Error).message}`);
     throw err;
   }
-
   const requestDurationMs = Date.now() - requestStartedAt;
+  console.log(`${trace} 📡 Hevy API responded in ${formatDuration(requestDurationMs)} - Status: ${res.status}`);
+
   if (!res.ok) {
     const msg = await parseErrorBody(res);
+    console.error(`${trace} ❌ Hevy API error: ${msg}`);
     const err = new Error(msg);
     (err as any).statusCode = res.status;
     throw err;
   }
 
   const payload = mapOAuthResponse(await res.json() as HevyLoginResponse);
+  console.log(`${trace} ✅ Login response parsed successfully`);
   return payload;
 };
 
@@ -118,6 +122,7 @@ export const hevyRefreshToken = async (
   const startedAt = Date.now();
   const trimmedRefreshToken = String(refreshToken ?? '').trim();
   if (!trimmedRefreshToken) {
+    console.error(`${trace} ❌ Missing refresh_token`);
     const err = new Error('Missing refresh_token');
     (err as any).statusCode = 400;
     throw err;
@@ -127,6 +132,7 @@ export const hevyRefreshToken = async (
   const body = { refresh_token: trimmedRefreshToken };
   const refreshUrl = buildEndpointUrl(HEVY_REFRESH_PATH);
 
+  console.log(`${trace} 📡 Calling Hevy /auth/refresh_token API...`);
   const requestStartedAt = Date.now();
   let res: Response;
   try {
@@ -137,17 +143,22 @@ export const hevyRefreshToken = async (
       signal: timeoutSignal(HEVY_REFRESH_TIMEOUT_MS),
     });
   } catch (err) {
+    console.error(`${trace} ❌ Network error calling Hevy refresh API: ${(err as Error).message}`);
     throw err;
   }
+  const requestDurationMs = Date.now() - requestStartedAt;
+  console.log(`${trace} 📡 Hevy refresh API responded in ${formatDuration(requestDurationMs)} - Status: ${res.status}`);
 
   if (!res.ok) {
     const msg = await parseErrorBody(res);
+    console.error(`${trace} ❌ Hevy refresh API error: ${msg}`);
     const err = new Error(msg);
     (err as any).statusCode = res.status;
     throw err;
   }
 
   const payload = mapOAuthResponse(await res.json() as HevyLoginResponse);
+  console.log(`${trace} ✅ Refresh response parsed successfully`);
   return payload;
 };
 
@@ -165,6 +176,7 @@ export const hevyValidateAuthToken = async (accessToken: string): Promise<boolea
 };
 
 export const hevyGetAccount = async (accessToken: string): Promise<HevyAccountResponse> => {
+  console.log(`[hevyApi] 📡 Getting Hevy account info...`);
   const res = await fetch(`${HEVY_BASE_URL}/user/account`, {
     method: 'GET',
     headers: buildHeaders(accessToken),
@@ -172,10 +184,12 @@ export const hevyGetAccount = async (accessToken: string): Promise<HevyAccountRe
 
   if (!res.ok) {
     const msg = await parseErrorBody(res);
+    console.error(`[hevyApi] ❌ Failed to get account: ${msg}`);
     const err = new Error(msg);
     (err as any).statusCode = res.status;
     throw err;
   }
+  console.log(`[hevyApi] ✅ Account info retrieved`);
 
   return (await res.json()) as HevyAccountResponse;
 };
@@ -184,6 +198,7 @@ export const hevyGetWorkoutsPaged = async (
   accessToken: string,
   opts: { username: string; offset: number }
 ): Promise<HevyPagedWorkoutsResponse> => {
+  console.log(`[hevyApi] 📡 Fetching workouts page (offset: ${opts.offset})...`);
   const params = new URLSearchParams({
     username: opts.username,
     offset: String(opts.offset),
@@ -196,10 +211,14 @@ export const hevyGetWorkoutsPaged = async (
 
   if (!res.ok) {
     const msg = await parseErrorBody(res);
+    console.error(`[hevyApi] ❌ Failed to fetch workouts: ${msg}`);
     const err = new Error(msg);
     (err as any).statusCode = res.status;
     throw err;
   }
 
-  return (await res.json()) as HevyPagedWorkoutsResponse;
+  const data = await res.json() as HevyPagedWorkoutsResponse;
+  const workoutsCount = data.workouts?.length ?? 0;
+  console.log(`[hevyApi] ✅ Got ${workoutsCount} workouts (offset: ${opts.offset})`);
+  return data;
 };

@@ -33,35 +33,6 @@ const getTracePrefix = (traceId?: string): string =>
 const safeErrorMessage = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
 
-const formatDuration = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
-
-// Operation tracking for better logging
-const activeOperations = new Map<string, number>();
-let warmupStartAt = 0;
-let warmupLaunchMs = 0;
-
-const logOperationStart = (operation: string, traceId?: string): void => {
-  const prefix = traceId ? `[User][${traceId}]` : '[System]';
-  const key = traceId ? `${operation}:${traceId}` : operation;
-  activeOperations.set(key, now());
-  console.log(`${prefix} ▶️  ${operation} START`);
-};
-
-const logOperationEnd = (operation: string, traceId?: string): void => {
-  const prefix = traceId ? `[User][${traceId}]` : '[System]';
-  const key = traceId ? `${operation}:${traceId}` : operation;
-  const startTime = activeOperations.get(key);
-  const duration = startTime ? now() - startTime : 0;
-  activeOperations.delete(key);
-  console.log(`${prefix} ✅ ${operation} END (${formatDuration(duration)})`);
-};
-
-const logQueue = (position: number, waitMs: number, traceId?: string): void => {
-  if (position <= 0 || waitMs < 100) return;
-  const prefix = traceId ? `[User][${traceId}]` : '[User]';
-  console.log(`${prefix} ⏳ CAPTCHA busy, waiting #${position} (${formatDuration(waitMs)})`);
-};
-
 const clearIdleCloseTimer = (): void => {
   if (!idleCloseTimer) return;
   clearTimeout(idleCloseTimer);
@@ -136,7 +107,7 @@ const closePage = async (p: Page, reason: string, traceId?: string): Promise<voi
 
 const closeBrowser = async (reason: string, traceId?: string): Promise<void> => {
   const prefix = getTracePrefix(traceId);
-  console.log(`${prefix} 🛑 Closing browser (reason: ${reason})`);
+  console.log(`${prefix} 🛑 Browser closing (${reason})`);
   clearIdleCloseTimer();
   const activeBrowser = browser;
   const pages = Array.from(openPages);
@@ -156,9 +127,9 @@ const closeBrowser = async (reason: string, traceId?: string): Promise<void> => 
   if (activeBrowser) {
     try {
       await activeBrowser.close();
-      console.log(`${prefix} ✅ Browser closed successfully (${reason})`);
+      console.log(`${prefix} ✅ Browser closed`);
     } catch (err) {
-      console.warn(`${prefix} ❌ Failed to close browser during ${reason}:`, safeErrorMessage(err));
+      console.warn(`${prefix} ❌ Failed to close browser:`, safeErrorMessage(err));
     }
   }
 
@@ -179,27 +150,14 @@ const ensureRecaptchaLoaded = async (p: Page, traceId?: string, forceReload = fa
   const prefix = getTracePrefix(traceId);
   const ready = await p.evaluate(() => Boolean((window as any).grecaptcha?.enterprise));
   if (ready && !forceReload) {
-    console.log(`${prefix} 📄 Page already loaded with reCAPTCHA ready`);
     return;
   }
 
-  const loadStartedAt = now();
   await p.goto(HEVY_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: RECAPTCHA_TIMEOUT_MS });
   await p.waitForFunction(() => Boolean((window as any).grecaptcha?.enterprise), {
     timeout: RECAPTCHA_TIMEOUT_MS,
   });
-  const loadMs = now() - loadStartedAt;
-
-  if (warmupStartAt > 0 && !forceReload) {
-    const totalMs = now() - warmupStartAt;
-    const launchMs = warmupLaunchMs;
-    const suffix = launchMs > 0 ? ` [browser: ${formatDuration(launchMs)}, page: ${formatDuration(loadMs)}]` : '';
-    console.log(`${prefix} ✅ Warmup complete (${formatDuration(totalMs)})${suffix}`);
-    warmupStartAt = 0;
-    warmupLaunchMs = 0;
-  } else {
-    console.log(`${prefix} ✅ Page ready (${formatDuration(loadMs)})`);
-  }
+  console.log(`${prefix} 📄 Page loaded`);
 };
 
 const ensureBrowser = async (traceId?: string): Promise<void> => {
@@ -211,16 +169,16 @@ const ensureBrowser = async (traceId?: string): Promise<void> => {
   const prefix = getTracePrefix(traceId);
   browserInitInFlight = (async () => {
     if (needsBrowserRecycle()) {
-      console.log(`${prefix} ♻️  Browser needs recycling (age/use count)`);
+      console.log(`${prefix} ♻️  Browser recycling`);
       await closeBrowser('recycle', traceId);
     }
 
     if (!browser || !browser.isConnected()) {
-      const launchStartedAt = now();
+      console.log(`${prefix} 🚀 Browser launching`);
       browser = await launchBrowser();
-      warmupLaunchMs = now() - launchStartedAt;
       browserCreatedAt = now();
       browserUseCount = 0;
+      console.log(`${prefix} ✅ Browser launched`);
     }
   })();
 
@@ -325,24 +283,26 @@ const fetchRecaptchaToken = async (context?: RecaptchaContext): Promise<string> 
   
   const { page, isStandby, queueMs, queuePosition } = await acquirePage(traceId);
 
-  logQueue(queuePosition, queueMs, traceId);
+  if (queuePosition > 0) {
+    console.log(`${userPrefix} ⏳ Waiting for CAPTCHA (#${queuePosition})`);
+  }
 
   try {
     let token: string;
     try {
-      logOperationStart('CAPTCHA execution', traceId);
+      console.log(`${userPrefix} 🎯 Executing CAPTCHA`);
       token = await executeRecaptcha(page);
-      logOperationEnd('CAPTCHA execution', traceId);
+      console.log(`${userPrefix} ✅ CAPTCHA done`);
     } catch {
-      console.log(`${userPrefix} ⚠️  CAPTCHA execution failed, reloading page...`);
+      console.log(`${userPrefix} ⚠️ CAPTCHA failed, retrying...`);
       await ensureRecaptchaLoaded(page, traceId, true);
-      logOperationStart('CAPTCHA execution (retry)', traceId);
+      console.log(`${userPrefix} 🎯 Executing CAPTCHA (retry)`);
       token = await executeRecaptcha(page);
-      logOperationEnd('CAPTCHA execution (retry)', traceId);
+      console.log(`${userPrefix} ✅ CAPTCHA done (retry)`);
     }
 
     browserUseCount += 1;
-    console.log(`${userPrefix} 🔑 Auth token obtained${isStandby ? ' using standby page' : ''}`);
+    console.log(`${userPrefix} 🔑 Token obtained${isStandby ? ' (standby)' : ''}`);
     return token;
   } finally {
     await releasePage(page, traceId);
@@ -370,16 +330,13 @@ export const warmRecaptchaSession = async (context?: RecaptchaContext): Promise<
       return;
     }
 
-    if (warmupStartAt === 0) {
-      warmupStartAt = now();
-      console.log('[System] 🚀 Warmup started (browser + page)');
-    }
+    console.log('[System] 🚀 Warmup starting');
 
     let page: Page | null = null;
     try {
       const acquired = await acquirePage(context?.traceId);
       page = acquired.page;
-      // Page load happens inside createPage/ensureRecaptchaLoaded.
+      console.log('[System] ✅ Warmup complete');
     } finally {
       if (page) {
         await releasePage(page, context?.traceId);

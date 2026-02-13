@@ -125,10 +125,11 @@ const requireAuthTokenHeader = (req: express.Request): string => {
   return match[1];
 };
 
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', (req, res) => {
   if (!firstRequestReceived) {
     firstRequestReceived = true;
-    console.log('[Server] 🚀 Cold start - first request received');
+    const trigger = req.header('x-interaction-type') || 'unknown';
+    console.log(`[Server] 🚀 Cold start - triggered by ${trigger}`);
   }
 
   const memUsage = process.memoryUsage();
