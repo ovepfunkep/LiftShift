@@ -299,6 +299,7 @@ const App: React.FC = () => {
     >
       <AppShell
         onboardingIntent={onboarding?.intent ?? null}
+        onSetOnboarding={setOnboarding}
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         onOpenUpdateFlow={handleOpenUpdateFlow}
