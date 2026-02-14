@@ -73,16 +73,16 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
   return (
     <div className="bg-black/70 rounded-xl border border-slate-700/50 p-4 relative flex flex-col h-full overflow-hidden">
       <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1 bg-black/70 rounded-lg p-1 shadow-lg">
+        <div className="flex items-center gap-1 bg-black/70 rounded-lg p-1 border border-slate-700/50">
           {(['PUS', 'PUL', 'LEG'] as const).map((filter) => (
             <button
               key={filter}
               onClick={() => onQuickFilterClick(filter)}
               title={QUICK_FILTER_LABELS[filter]}
-              className={`px-1 py-0.5 rounded text-[9px] font-bold transition-all ${activeQuickFilter === filter
-                ? 'bg-red-600 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
+              className={`px-1 py-0.5 rounded text-[8px] font-bold transition-all ${activeQuickFilter === filter
+              ? 'bg-red-600 text-white'
+              : 'text-slate-400'
+              }`}
             >
               {filter}
             </button>

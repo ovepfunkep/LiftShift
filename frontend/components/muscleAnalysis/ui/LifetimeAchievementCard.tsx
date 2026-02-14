@@ -29,7 +29,7 @@ const ProgressRing: React.FC<{ percent: number; size?: number; strokeWidth?: num
         r={radius}
         fill="none"
         strokeWidth={strokeWidth}
-        className="dark:stroke-slate-700 stroke-slate-400"
+        className="stroke-slate-300"
       />
       <circle
         cx={size / 2}
@@ -126,7 +126,7 @@ export const LifetimeAchievementCard: React.FC<LifetimeAchievementCardProps> = (
       {/* ── Header: Achievement ring + stats ────────────────────────── */}
       <div className="p-3 flex items-start gap-3">
         <div className="relative flex-shrink-0">
-          <ProgressRing percent={contextPercent} size={56} strokeWidth={4} color={color} />
+          <ProgressRing percent={contextPercent} size={56} strokeWidth={5} color={color} />
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-[13px] font-bold text-white">
               {Math.round(contextPercent)}%
