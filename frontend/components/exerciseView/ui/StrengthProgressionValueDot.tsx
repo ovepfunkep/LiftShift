@@ -74,13 +74,14 @@ export const StrengthProgressionValueDot = (props: any) => {
     ? allPrTypes.filter((t: PrType) => prTypesToShow.includes(t))
     : allPrTypes;
 
-  // Suppress 1RM PR if weight PR exists on same day
-  if (prTypesToShow?.includes('oneRm') && combinedPrTypes.includes('weight') && combinedPrTypes.includes('oneRm')) {
-    filteredPrTypes = filteredPrTypes.filter((t: PrType) => t !== 'oneRm');
-  }
 
   // Check for Gold PR
   const shouldShowPr = isGlobalMax && filteredPrTypes.length > 0;
+  
+  // DEBUG: Log specifically for Lat Pulldown
+  if (payload.date?.includes('Dec') || payload.date?.includes('9')) {
+    console.log('LatPulldown:', { date: payload.date, valueKey, value, globalMaxValue, isGlobalMax, isPr: payload.isPr, weightPrTypes: payload.weightPrTypes, oneRmPrTypes: payload.oneRmPrTypes, prTypesToShow, filteredPrTypes, shouldShowPr });
+  }
 
   // Get Silver PR types
   const combinedSilverPrTypes: PrType[] = payload.silverPrTypes || [];
@@ -96,8 +97,8 @@ export const StrengthProgressionValueDot = (props: any) => {
     ? allSilverPrTypes.filter((t: PrType) => prTypesToShow.includes(t))
     : allSilverPrTypes;
 
-  // Suppress 1RM silver if weight silver exists
-  if (prTypesToShow?.includes('oneRm') && combinedSilverPrTypes.includes('weight') && combinedSilverPrTypes.includes('oneRm')) {
+  // Suppress 1RM silver if weight silver exists on same session
+  if (prTypesToShow?.includes('oneRm') && payload.silverWeightPrTypes?.length > 0 && payload.silverOneRmPrTypes?.length > 0) {
     filteredSilverPrTypes = filteredSilverPrTypes.filter((t: PrType) => t !== 'oneRm');
   }
 
