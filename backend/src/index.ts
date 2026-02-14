@@ -145,6 +145,10 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/ping', (req, res) => {
+  res.send('OK');
+});
+
 app.use('/api/hevy', createHevyRouter({ loginLimiter, requireAuthTokenHeader, getCachedResponse }));
 app.use('/api/hevy', createHevyProRouter({ loginLimiter, getCachedResponse }));
 app.use('/api/lyfta', createLyftaRouter({ loginLimiter, getCachedResponse }));
