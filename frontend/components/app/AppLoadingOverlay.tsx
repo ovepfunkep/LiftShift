@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Hourglass, Loader2 } from 'lucide-react';
-import { CsvLoadingAnimation } from '../modals/csvImport/CsvLoadingAnimation';
+import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CsvLoadingAnimation, PuzzleLoadingAnimation } from '../modals/csvImport';
 
 interface AppLoadingOverlayProps {
   open: boolean;
@@ -29,7 +29,7 @@ const LOADING_MESSAGES = [
   'Calculating display data...',
   'Rendering the interface...',
   'Final touches...',
-  'Just a few seconds... (login can be slow) [hourglass]',
+  'Solving Captcha for you...',
   'Almost ready...',
 ];
 
@@ -145,8 +145,8 @@ export const AppLoadingOverlay: React.FC<AppLoadingOverlayProps> = ({
                   {msg.state === 'completed' ? (
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                   ) : msg.state === 'active' ? (
-                    msg.text.includes('hourglass') ? (
-                      <Hourglass className="w-4 h-4 text-amber-500 flex-shrink-0 animate-spin" />
+                    msg.text.includes('Captcha') ? (
+                      <PuzzleLoadingAnimation size={20} />
                     ) : (
                       <Loader2 className="w-5 h-5 text-blue-500 animate-spin flex-shrink-0" />
                     )
@@ -154,7 +154,7 @@ export const AppLoadingOverlay: React.FC<AppLoadingOverlayProps> = ({
                     <div className="w-5 h-5 rounded-full border-2 border-slate-700 flex-shrink-0" />
                   )}
                   <span className={msg.state === 'pending' ? 'text-slate-600' : 'text-slate-500'}>
-                    {msg.text.replace(' [hourglass]', '')}
+                    {msg.text}
                   </span>
                 </div>
               ))}
