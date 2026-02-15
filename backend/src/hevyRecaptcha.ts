@@ -312,16 +312,22 @@ const fetchRecaptchaToken = async (context?: RecaptchaContext): Promise<string> 
 
   try {
     let token: string;
-    try {
-      console.log(`${userPrefix} 🎯 Executing CAPTCHA`);
-      token = await executeRecaptcha(page);
-      console.log(`${userPrefix} ✅ CAPTCHA done`);
-    } catch {
-      console.log(`${userPrefix} ⚠️ CAPTCHA failed, retrying...`);
-      await ensureRecaptchaLoaded(page, traceId, true);
-      console.log(`${userPrefix} 🎯 Executing CAPTCHA (retry)`);
-      token = await executeRecaptcha(page);
-      console.log(`${userPrefix} ✅ CAPTCHA done (retry)`);
+    
+    if (isTokenCacheValid() && tokenCache) {
+      console.log(`${userPrefix} 🎯 Using cached token (post-queue)`);
+      token = tokenCache.token;
+    } else {
+      try {
+        console.log(`${userPrefix} 🎯 Executing CAPTCHA`);
+        token = await executeRecaptcha(page);
+        console.log(`${userPrefix} ✅ CAPTCHA done`);
+      } catch {
+        console.log(`${userPrefix} ⚠️ CAPTCHA failed, retrying...`);
+        await ensureRecaptchaLoaded(page, traceId, true);
+        console.log(`${userPrefix} 🎯 Executing CAPTCHA (retry)`);
+        token = await executeRecaptcha(page);
+        console.log(`${userPrefix} ✅ CAPTCHA done (retry)`);
+      }
     }
 
     browserUseCount += 1;
