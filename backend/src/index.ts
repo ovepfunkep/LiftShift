@@ -82,6 +82,11 @@ const loginLimiter = rateLimit({
   limit: 5,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  message: { error: 'RateLimitExceeded', message: 'Too many login attempts. Please wait 1 minute.' },
+  skip: (req) => {
+    // Don't rate limit warmup requests
+    return req.path === '/api/hevy/recaptcha/session-warmup';
+  },
 });
 
 const requireAuthTokenHeader = (req: express.Request): string => {
