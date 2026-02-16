@@ -55,16 +55,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   BETA
                 </sup>
               </span>
-              {isDemoMode() && (
-                <button
-                  type="button"
-                  onClick={handleExitDemo}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-8 px-2.5 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:border-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/30 transition-all duration-200 gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
-                </button>
-              )}
             </div>
           </div>
 
@@ -76,6 +66,17 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 layout="header"
                 primaryRightSlot={(
                   <div className="flex items-center gap-2">
+                    {isDemoMode() && (
+                      <button
+                        type="button"
+                        onClick={handleExitDemo}
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-8 px-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:border-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/30 transition-all duration-200 gap-1"
+                        title="Exit Demo"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Back</span>
+                      </button>
+                    )}
                     <ThemeToggleButton />
                     <button
                       type="button"
@@ -102,6 +103,17 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             {/* Mobile: keep Update action */}
             <div className="md:hidden">
               <div className="flex items-center gap-2">
+                {isDemoMode() && (
+                  <button
+                    type="button"
+                    onClick={handleExitDemo}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-8 px-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:border-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/30 transition-all duration-200 gap-1"
+                    title="Exit Demo"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span className="text-[10px]">Back</span>
+                  </button>
+                )}
                 <ThemeToggleButton compact={true} />
                 <button
                   type="button"
