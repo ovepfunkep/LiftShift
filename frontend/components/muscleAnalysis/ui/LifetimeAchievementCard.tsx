@@ -29,7 +29,7 @@ const ProgressRing: React.FC<{ percent: number; size?: number; strokeWidth?: num
         r={radius}
         fill="none"
         strokeWidth={strokeWidth}
-        className="stroke-slate-300"
+        stroke="rgba(51, 65, 85, 0.35)"
       />
       <circle
         cx={size / 2}
