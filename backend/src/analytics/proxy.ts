@@ -1,0 +1,38 @@
+import { createProxyMiddleware } from 'http-proxy-middleware';
+
+const API_HOST = process.env.POSTHOG_HOST?.replace(/^https?:\/\//, '') || 'us.i.posthog.com';
+const ASSET_HOST = process.env.POSTHOG_REGION === 'eu' ? 'eu-assets.i.posthog.com' : 'us-assets.i.posthog.com';
+
+export const createPosthogProxy = (prefix: string) => {
+  return createProxyMiddleware({
+    target: `https://${API_HOST}`,
+    changeOrigin: true,
+    secure: true,
+    pathRewrite: {
+      [`^${prefix}`]: '',
+    },
+    onProxyReq: (proxyReq: any, req: any) => {
+      proxyReq.setHeader('host', API_HOST);
+      proxyReq.setHeader('X-Real-IP', req.ip || '');
+      proxyReq.setHeader('X-Forwarded-For', req.headers['x-forwarded-for'] || req.ip || '');
+    },
+  } as any);
+};
+
+export const createPosthogStaticProxy = (prefix: string) => {
+  return createProxyMiddleware({
+    target: `https://${ASSET_HOST}`,
+    changeOrigin: true,
+    secure: true,
+    pathRewrite: {
+      [`^${prefix}/static`]: '/static',
+    },
+    onProxyReq: (proxyReq: any, req: any) => {
+      proxyReq.setHeader('host', ASSET_HOST);
+      proxyReq.setHeader('X-Real-IP', req.ip || '');
+      proxyReq.setHeader('X-Forwarded-For', req.headers['x-forwarded-for'] || req.ip || '');
+    },
+  } as any);
+};
+
+export const posthogProxyPath = '/ingest';

@@ -4,6 +4,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { analyticsRequestMiddleware } from './analytics/requestTracking';
 import { shutdownPosthog } from './analytics/posthog';
+import { createPosthogProxy, createPosthogStaticProxy, posthogProxyPath } from './analytics/proxy';
 import { shutdownRecaptchaSession, warmRecaptchaSession } from './hevyRecaptcha';
 import { createHevyRouter } from './routes/hevyRoutes';
 import { createHevyProRouter } from './routes/hevyProRoutes';
@@ -122,6 +123,11 @@ app.get('/api/health', (req, res) => {
 app.get('/ping', (req, res) => {
   res.send('OK');
 });
+
+const posthogProxy = createPosthogProxy(posthogProxyPath);
+const posthogStaticProxy = createPosthogStaticProxy(posthogProxyPath);
+app.use(`${posthogProxyPath}/static`, posthogStaticProxy);
+app.use(posthogProxyPath, posthogProxy);
 
 app.use('/api/hevy', createHevyRouter({ loginLimiter, requireAuthTokenHeader, getCachedResponse }));
 app.use('/api/hevy', createHevyProRouter({ loginLimiter, getCachedResponse }));
