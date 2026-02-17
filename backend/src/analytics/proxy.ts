@@ -46,4 +46,5 @@ export const createPosthogAssetProxy = (assetPrefix: string) => {
   } as any);
 };
 
-export const posthogProxyPath = '/ingest';
+const proxyPath = String(process.env.POSTHOG_PROXY_PATH ?? '/ingest').trim() || '/ingest';
+export const posthogProxyPath = proxyPath.startsWith('/') ? proxyPath : `/${proxyPath}`;
