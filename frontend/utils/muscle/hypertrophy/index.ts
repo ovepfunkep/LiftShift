@@ -1,5 +1,5 @@
-export { MUSCLE_PARAMS, getMuscleParams, ALL_PARAM_MUSCLE_IDS } from './muscleParams';
-export type { MuscleHypertrophyParams, MuscleSizeCategory } from './muscleParams';
+export { MUSCLE_PARAMS, getMuscleParams, ALL_PARAM_MUSCLE_IDS, getVolumeThresholds, DEFAULT_VOLUME_THRESHOLDS } from './muscleParams';
+export type { MuscleHypertrophyParams, MuscleSizeCategory, MuscleVolumeThresholds } from './muscleParams';
 export {
   weeklyStimulus,
   lifetimeAchievement,

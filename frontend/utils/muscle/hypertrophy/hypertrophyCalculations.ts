@@ -1,4 +1,4 @@
-import { getMuscleParams, MUSCLE_PARAMS, type MuscleHypertrophyParams } from './muscleParams';
+import { getMuscleParams, getVolumeThresholds, MUSCLE_PARAMS, type MuscleHypertrophyParams } from './muscleParams';
 import type { HeadlessMuscleId } from '../mapping/muscleHeadless';
 import { HEADLESS_MUSCLE_IDS, HEADLESS_MUSCLE_NAMES } from '../mapping/muscleHeadless';
 
@@ -8,24 +8,46 @@ import { HEADLESS_MUSCLE_IDS, HEADLESS_MUSCLE_NAMES } from '../mapping/muscleHea
 
 /**
  * Estimate % of realistic possible weekly hypertrophy stimulus
- * using a per-muscle logistic dose-response model.
+ * using a tier-based model aligned with volume thresholds.
  *
- * Returns 0 when sets = 0. Asymptotically approaches ~95% at high volumes.
- * The curve shape is muscle-specific: large muscles need more sets to saturate.
+ * Thresholds:
+ * - <6 sets: Building stimulus (0-30%)
+ * - 6-12 sets: Efficient growth (30-60%)
+ * - 12-20 sets: Maximum growth (60-90%)
+ * - 20-35 sets: Peak maximizing (90-98%)
+ * - 35+ sets: Diminishing returns (98-100%)
  */
 export function weeklyStimulus(sets: number, muscleId?: string): number {
   if (sets <= 0) return 0;
+  return weeklyStimulusFromThresholds(sets, getVolumeThresholds());
+}
 
-  const params = muscleId ? getMuscleParams(muscleId) : undefined;
-  const a = params?.weeklySteepness ?? 0.30;
-  const b = params?.weeklyInflection ?? 10;
+export function weeklyStimulusFromThresholds(
+  sets: number,
+  thresholds: { mv: number; mev: number; mrv: number; maxv: number }
+): number {
+  if (sets <= 0) return 0;
 
-  const raw = 1 / (1 + Math.exp(-a * (sets - b)));
-  // Normalize so that ~25 sets/wk maps to ~95%
-  const atCeiling = 1 / (1 + Math.exp(-a * (25 - b)));
-  const scaled = (raw / atCeiling) * 95;
+  const { mv, mev, mrv, maxv } = thresholds;
 
-  return Math.min(99, Math.round(scaled * 10) / 10);
+  if (sets < mv) {
+    // 0 to mv: 0% to 30%
+    return Math.round((sets / mv) * 30);
+  }
+  if (sets < mev) {
+    // mv to mev: 30% to 60%
+    return 30 + Math.round(((sets - mv) / (mev - mv)) * 30);
+  }
+  if (sets < mrv) {
+    // mev to mrv: 60% to 90%
+    return 60 + Math.round(((sets - mev) / (mrv - mev)) * 30);
+  }
+  if (sets < maxv) {
+    // mrv to maxv: 90% to 98%
+    return 90 + Math.round(((sets - mrv) / (maxv - mrv)) * 8);
+  }
+  // Above maxv: 98% to 100%
+  return Math.min(100, 98 + Math.round(((sets - maxv) / 10) * 2));
 }
 
 // ---------------------------------------------------------------------------

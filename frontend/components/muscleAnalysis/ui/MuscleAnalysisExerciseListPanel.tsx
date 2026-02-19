@@ -2,12 +2,14 @@ import React from 'react';
 import { MuscleAnalysisExerciseList } from './MuscleAnalysisExerciseList';
 import type { ExerciseAsset } from '../../../utils/data/exerciseAssets';
 import type { ExerciseMuscleData } from '../../../utils/muscle/mapping';
+import type { MuscleVolumeThresholds } from '../../../utils/muscle/hypertrophy/muscleParams';
 
 interface MuscleAnalysisExerciseListPanelProps {
   contributingExercises: Array<{ name: string; sets: number; primarySets: number; secondarySets: number }>;
   assetsMap: Map<string, ExerciseAsset> | null;
   exerciseMuscleData: Map<string, ExerciseMuscleData>;
   totalSetsInWindow: number;
+  volumeThresholds: MuscleVolumeThresholds;
   onExerciseClick?: (exerciseName: string) => void;
 }
 
@@ -16,6 +18,7 @@ export const MuscleAnalysisExerciseListPanel: React.FC<MuscleAnalysisExerciseLis
   assetsMap,
   exerciseMuscleData,
   totalSetsInWindow,
+  volumeThresholds,
   onExerciseClick,
 }) => {
   return (
@@ -35,6 +38,7 @@ export const MuscleAnalysisExerciseListPanel: React.FC<MuscleAnalysisExerciseLis
           assetsMap={assetsMap}
           exerciseMuscleData={exerciseMuscleData}
           totalSetsInWindow={totalSetsInWindow}
+          volumeThresholds={volumeThresholds}
           onExerciseClick={onExerciseClick}
         />
       </div>

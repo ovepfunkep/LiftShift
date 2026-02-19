@@ -6,10 +6,9 @@ import { ChartSkeleton } from '../../ui/ChartSkeleton';
 import { CHART_TOOLTIP_STYLE } from '../../../utils/ui/uiConstants';
 import { formatNumber } from '../../../utils/format/formatters';
 import { getRechartsXAxisInterval, RECHARTS_XAXIS_PADDING } from '../../../utils/chart/chartEnhancements';
-import { QUICK_FILTER_LABELS, HEADLESS_MUSCLE_NAMES } from '../../../utils/muscle/mapping';
+import { HEADLESS_MUSCLE_NAMES } from '../../../utils/muscle/mapping';
 import { SVG_MUSCLE_NAMES } from '../../../utils/muscle/mapping';
 import type { WeeklySetsWindow } from '../../../utils/muscle/analytics';
-import type { QuickFilterCategory } from '../hooks/useMuscleSelection';
 import type { ExerciseAsset } from '../../../utils/data/exerciseAssets';
 import type { ExerciseMuscleData } from '../../../utils/muscle/mapping';
 import { MuscleAnalysisExerciseList } from './MuscleAnalysisExerciseList';
@@ -17,7 +16,6 @@ import { LifetimeAchievementCard } from './LifetimeAchievementCard';
 import type { LifetimeAchievementData } from '../hooks/useLifetimeAchievement';
 
 interface MuscleAnalysisDetailPanelProps {
-  activeQuickFilter: QuickFilterCategory | null;
   selectedMuscle: string | null;
   viewMode: 'muscle' | 'group' | 'headless';
   weeklySetsWindow: WeeklySetsWindow;
@@ -35,7 +33,6 @@ interface MuscleAnalysisDetailPanelProps {
 }
 
 export const MuscleAnalysisDetailPanel: React.FC<MuscleAnalysisDetailPanelProps> = ({
-  activeQuickFilter,
   selectedMuscle,
   viewMode,
   weeklySetsWindow,
@@ -51,15 +48,13 @@ export const MuscleAnalysisDetailPanel: React.FC<MuscleAnalysisDetailPanelProps>
   lifetimeAchievement,
   onMuscleClick,
 }) => {
-  const title = activeQuickFilter
-    ? QUICK_FILTER_LABELS[activeQuickFilter]
-    : selectedMuscle
-      ? (viewMode === 'group'
-        ? selectedMuscle
-        : viewMode === 'headless'
-          ? ((HEADLESS_MUSCLE_NAMES as any)[selectedMuscle] ?? selectedMuscle)
-          : SVG_MUSCLE_NAMES[selectedMuscle])
-      : (viewMode === 'group' ? 'All Groups' : viewMode === 'headless' ? 'All Muscles' : 'All Muscles');
+  const title = selectedMuscle
+    ? (viewMode === 'group'
+      ? selectedMuscle
+      : viewMode === 'headless'
+        ? ((HEADLESS_MUSCLE_NAMES as any)[selectedMuscle] ?? selectedMuscle)
+        : SVG_MUSCLE_NAMES[selectedMuscle])
+    : (viewMode === 'group' ? 'All Groups' : viewMode === 'headless' ? 'All Muscles' : 'All Muscles');
 
   const totalSetsInWindow = windowedSelectionBreakdown?.totalSetsInWindow ?? 0;
 
@@ -70,9 +65,9 @@ export const MuscleAnalysisDetailPanel: React.FC<MuscleAnalysisDetailPanelProps>
           <h2 className="text-lg font-bold text-white truncate">{title}</h2>
           <span
             className="text-red-400 text-sm font-semibold whitespace-nowrap"
-            title={activeQuickFilter || selectedMuscle ? 'sets in current filter' : ''}
+            title={selectedMuscle ? 'sets in current filter' : ''}
           >
-            {activeQuickFilter || selectedMuscle
+            {selectedMuscle
               ? `${Math.round(totalSetsInWindow * 10) / 10} sets`
               : null}
           </span>
@@ -92,7 +87,7 @@ export const MuscleAnalysisDetailPanel: React.FC<MuscleAnalysisDetailPanelProps>
             </span>
           )}
         </div>
-        {(selectedMuscle || activeQuickFilter) && (
+        {selectedMuscle && (
           <button
             onClick={clearSelection}
             className="p-1.5 hover:bg-black/60 rounded-lg transition-colors"
@@ -128,6 +123,16 @@ export const MuscleAnalysisDetailPanel: React.FC<MuscleAnalysisDetailPanelProps>
                       axisLine={false}
                       padding={RECHARTS_XAXIS_PADDING as any}
                       interval={getRechartsXAxisInterval(trendData.length, 7)}
+                      tickFormatter={(value) => {
+                        if (!value || typeof value !== 'string') return value;
+                        if (value.includes('-')) {
+                          const date = new Date(value);
+                          if (!isNaN(date.getTime())) {
+                            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                          }
+                        }
+                        return value;
+                      }}
                     />
                     <YAxis hide />
                     <RechartsTooltip

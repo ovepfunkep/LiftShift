@@ -1,28 +1,29 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
-import { TrendingDown, TrendingUp, X } from 'lucide-react';
+import { TrendingDown, TrendingUp, X, Triangle } from 'lucide-react';
 import { CHART_TOOLTIP_STYLE } from '../../../utils/ui/uiConstants';
 import { getRechartsCategoricalTicks, formatAxisNumber, calculateYAxisDomain } from '../../../utils/chart/chartEnhancements';
-import { QUICK_FILTER_LABELS, HEADLESS_MUSCLE_NAMES } from '../../../utils/muscle/mapping';
+import { HEADLESS_MUSCLE_NAMES } from '../../../utils/muscle/mapping';
 import type { WeeklySetsWindow } from '../../../utils/muscle/analytics';
-import type { QuickFilterCategory } from '../hooks/useMuscleSelection';
-import { getThemeMode } from '../../../utils/storage/localStorage';
+import { getVolumeZoneColor, getVolumeZone } from '../../../utils/muscle/hypertrophy/muscleParams';
+import { weeklyStimulusFromThresholds } from '../../../utils/muscle/hypertrophy/hypertrophyCalculations';
 
 interface CustomMuscleTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string;
-  getZone: (sets: number) => { label: string; full: string; color: string };
+  volumeThresholds: { mv: number; mev: number; mrv: number; maxv: number };
 }
 
-const CustomMuscleTooltip: React.FC<CustomMuscleTooltipProps> = ({ active, payload, label, getZone }) => {
+const CustomMuscleTooltip: React.FC<CustomMuscleTooltipProps> = ({ active, payload, label, volumeThresholds }) => {
   if (active && payload && payload.length) {
     const value = payload[0].value;
-    const zone = getZone(value);
+    const zone = getVolumeZone(value, volumeThresholds);
+    const stimulus = calculateStimulusPercent(value, volumeThresholds);
     
     return (
       <div
-        className="p-3 rounded-lg shadow-2xl"
+        className="p-3 rounded-lg shadow-2xl max-w-[220px]"
         style={{
           ...CHART_TOOLTIP_STYLE,
           borderStyle: 'solid',
@@ -31,9 +32,15 @@ const CustomMuscleTooltip: React.FC<CustomMuscleTooltipProps> = ({ active, paylo
         }}
       >
         <p className="text-slate-400 text-xs mb-1 font-mono">{label}</p>
-        <p className="text-xs text-slate-200">
-          {formatAxisNumber(value)} sets/wk <span style={{ color: zone.color }}>· {zone.full}</span>
+        <p className="text-xs text-slate-200 mb-1">
+          {formatAxisNumber(value)} sets/wk
         </p>
+        <p className="text-[10px] mb-2" style={{ color: zone.color }}>
+          {stimulus}% of weekly possible gains
+        </p>
+        <div className="text-[10px] text-slate-400 leading-relaxed">
+          {zone.explanation}
+        </div>
       </div>
     );
   }
@@ -42,69 +49,86 @@ const CustomMuscleTooltip: React.FC<CustomMuscleTooltipProps> = ({ active, paylo
 
 interface MuscleAnalysisGraphPanelProps {
   selectedMuscle: string | null;
-  activeQuickFilter: QuickFilterCategory | null;
   weeklySetsWindow: WeeklySetsWindow;
   weeklySetsSummary: number | null;
+  legendMaxSets: number;
+  volumeThresholds: { mv: number; mev: number; mrv: number; maxv: number };
   volumeDelta: { direction: 'up' | 'down' | 'same'; formattedPercent: string } | null;
   trendData: Array<{ period: string; sets: number }>;
+  legendTrendData: Array<{ period: string; sets: number }>;
   windowedSelectionBreakdown: { totalSetsInWindow: number } | null;
   clearSelection: () => void;
 }
 
-const ZONE_CONFIG = {
-  single: {
-    mv: 6,
-    mev: 10,
-    mrv: 25,
-  },
-  all: {
-    mv: 30,
-    mev: 50,
-    mrv: 80,
-  }
+const LEGEND_MAX_DISPLAY = 41; // Set a reasonable max for legend display - can be adjusted based on typical max volumes
+
+// Zone labels now imported from shared utility in muscleParams.ts
+
+/** Progress bar for weekly possible gains */
+const PossibleGainsBar: React.FC<{ percent: number }> = ({ percent }) => {
+  const getColor = (p: number) => {
+    if (p >= 90) return '#15803d'; // maximizing - deep green
+    if (p >= 60) return '#22c55e'; // optimal - green
+    if (p >= 30) return '#86efac'; // growth - light green
+    return '#64748b'; // below MV - slate
+  };
+
+  const textShadow = percent < 70 ? '0 1px 3px rgba(0,0,0,0.5)' : 'none';
+
+  return (
+    <div className="relative flex items-center gap-2 text-[9px]">
+      <div className="flex-1 h-4 rounded-md overflow-hidden relative flex" style={{ backgroundColor: 'rgba(100,116,139,0.15)' }}>
+        <div 
+          className="h-full rounded-md transition-all duration-500 ease-out"
+          style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: getColor(percent) }}
+        />
+        <span 
+          className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white"
+          style={{ textShadow }}
+        >
+          {percent}% possible gains
+        </span>
+      </div>
+    </div>
+  );
 };
 
-const ZONE_LABELS = {
-  belowMV: { short: 'Maintenance', full: 'Maintenance', color: '#64748b' },
-  growth: { short: 'Growth', full: 'Growth', color: '#eab308' },
-  optimal: { short: 'Maximizing', full: 'Maximizing', color: '#22c55e' },
-  risk: { short: 'Specialization / Risk', full: 'Specialization / Risk', color: '#ef4444' },
-};
+// Calculate percentage of weekly possible gains
+const calculateStimulusPercent = (
+  sets: number,
+  thresholds: { mv: number; mev: number; mrv: number; maxv: number }
+): number => weeklyStimulusFromThresholds(sets, thresholds);
+
+// Use shared getVolumeZone from muscleParams for single source of truth
+
+// Get color based on sets using shared function
+function getZoneColor(sets: number, thresholds: { mv: number; mev: number; mrv: number; maxv: number }, maxSets?: number): string {
+  const zones = thresholds;
+  const effectiveSets = sets;
+  return getVolumeZoneColor(effectiveSets, zones, maxSets);
+}
 
 export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> = React.memo(({
   selectedMuscle,
-  activeQuickFilter,
   weeklySetsWindow,
   weeklySetsSummary,
+  legendMaxSets,
+  volumeThresholds,
   volumeDelta,
   trendData,
+  legendTrendData,
   windowedSelectionBreakdown,
   clearSelection,
 }) => {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const mode = getThemeMode();
-    return mode !== 'light';
-  });
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const mode = getThemeMode();
-      setIsDarkMode(mode !== 'light');
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  const title = activeQuickFilter
-    ? QUICK_FILTER_LABELS[activeQuickFilter]
-    : selectedMuscle
-      ? ((HEADLESS_MUSCLE_NAMES as any)[selectedMuscle] ?? selectedMuscle)
-      : 'All Muscles';
+  const title = selectedMuscle
+    ? ((HEADLESS_MUSCLE_NAMES as any)[selectedMuscle] ?? selectedMuscle)
+    : 'All Muscles';
 
   const totalSetsInWindow = windowedSelectionBreakdown?.totalSetsInWindow ?? 0;
-  const isAllMuscles = !selectedMuscle && !activeQuickFilter;
-  const zones = isAllMuscles ? ZONE_CONFIG.all : ZONE_CONFIG.single;
+  const zones = { 
+    ...volumeThresholds,
+    maxDisplay: LEGEND_MAX_DISPLAY 
+  };
 
   const xTicks = useMemo(() => {
     return getRechartsCategoricalTicks(trendData, (row: any) => row?.period);
@@ -117,93 +141,104 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
   }, [trendData, xTicks]);
 
   const yAxisDomain = useMemo(() => {
-    const domain = calculateYAxisDomain(trendData, ['sets'], { paddingPercent: 0.1, fallbackMin: 0, fallbackMax: isAllMuscles ? 100 : 25 });
-    return [0, Math.max(domain[1], isAllMuscles ? 100 : 25)] as [number, number];
-  }, [trendData, isAllMuscles]);
+    const maxFromData = Math.max(...trendData.map(d => d.sets), weeklySetsSummary ?? 0, 10);
+    const domain = calculateYAxisDomain(trendData, ['sets'], { paddingPercent: 0.1, fallbackMin: 0, fallbackMax: maxFromData });
+    return [0, Math.max(domain[1], 10)] as [number, number];
+  }, [trendData, weeklySetsSummary]);
 
-  const getZone = (sets: number) => {
-    if (sets < zones.mv) return ZONE_LABELS.belowMV;
-    if (sets < zones.mev) return ZONE_LABELS.growth;
-    if (sets < zones.mrv) return ZONE_LABELS.optimal;
-    return ZONE_LABELS.risk;
-  };
+  const currentZone = weeklySetsSummary !== null ? getVolumeZone(weeklySetsSummary, volumeThresholds) : null;
+  const currentColor = weeklySetsSummary !== null ? getZoneColor(weeklySetsSummary, volumeThresholds) : null;
+  
+  // Calculate weekly possible gains (stimulus percentage)
+  const stimulusPercent = weeklySetsSummary !== null
+    ? weeklyStimulusFromThresholds(weeklySetsSummary, volumeThresholds)
+    : null;
 
-  const currentZone = weeklySetsSummary !== null ? getZone(weeklySetsSummary) : null;
+  // Legend is ALWAYS based on FILTER (not selected muscle) - use maxSets from headlessRatesMap
+  const showOverdrive = legendMaxSets > zones.maxv;
+  
+  // Legend always scales to filter data max
+  const legendMax = Math.max(legendMaxSets, zones.maxv);
+
+  // Arrow shows the selected muscle's value
+  const arrowValue = weeklySetsSummary ?? 0;
+  
+  // Calculate arrow position on legend
+  const arrowPosition = useMemo(() => {
+    if (arrowValue === 0) return null;
+    const percent = Math.min(100, Math.max(0, (arrowValue / legendMax) * 100));
+    return percent;
+  }, [arrowValue, legendMax]);
 
   const gradientStops = useMemo(() => {
     if (!displayData.length) return [];
     
-    const thresholds = [zones.mv, zones.mev, zones.mrv];
     const n = displayData.length;
     const stops: Array<{ offset: number; color: string }> = [];
     
-    // Helper to get zone color
-    const getZoneColor = (sets: number) => {
-      if (sets < zones.mv) return ZONE_LABELS.belowMV.color;
-      if (sets < zones.mev) return ZONE_LABELS.growth.color;
-      if (sets < zones.mrv) return ZONE_LABELS.optimal.color;
-      return ZONE_LABELS.risk.color;
-    };
-    
     // Add initial stop
-    stops.push({ offset: 0, color: getZoneColor(displayData[0].sets) });
+    stops.push({ offset: 0, color: getZoneColor(displayData[0].sets, volumeThresholds, legendMax) });
     
     for (let i = 0; i < n - 1; i++) {
-      const y1 = displayData[i].sets;
       const y2 = displayData[i + 1].sets;
-      const startOffset = i / (n - 1);
       const endOffset = (i + 1) / (n - 1);
       
-      // Find where the line crosses each threshold
-      const crossings: Array<{ offset: number; color: string }> = [];
-      
-      for (const thr of thresholds) {
-        const minY = Math.min(y1, y2);
-        const maxY = Math.max(y1, y2);
-        
-        if (minY < thr && maxY > thr) {
-          // Line crosses this threshold - calculate exact x position
-          const ratio = Math.abs(thr - y1) / Math.abs(y2 - y1);
-          const offset = startOffset + ratio * (endOffset - startOffset);
-          // Determine which zone we're entering
-          const enteringZoneColor = y2 > y1 
-            ? getZoneColor(thr + 0.001) // Going up
-            : getZoneColor(thr - 0.001); // Going down
-          crossings.push({ offset, color: enteringZoneColor });
-        }
-      }
-      
-      // Sort by position and add stops
-      crossings.sort((a, b) => a.offset - b.offset);
-      for (const crossing of crossings) {
-        // Add two stops at the crossing point for clean color transition
-        stops.push({ offset: crossing.offset, color: crossing.color });
-        stops.push({ offset: crossing.offset, color: crossing.color });
-      }
-      
-      // Add stop at the end of this segment
-      stops.push({ offset: endOffset, color: getZoneColor(y2) });
+      // Add stop at the end of this segment with interpolated color
+      stops.push({ offset: endOffset, color: getZoneColor(y2, volumeThresholds, legendMax) });
     }
     
     return stops;
-  }, [displayData, zones]);
+  }, [displayData, legendMax, volumeThresholds]);
+
+  const legendColors = useMemo(() => {
+    const atMv = getVolumeZoneColor(zones.mv, zones, legendMax);
+    const atMev = getVolumeZoneColor(zones.mev, zones, legendMax);
+    const atMrv = getVolumeZoneColor(zones.mrv, zones, legendMax);
+    const atMaxv = getVolumeZoneColor(zones.maxv, zones, legendMax);
+    const atMaxvPlus10 = getVolumeZoneColor(zones.maxv + 10, zones, legendMax);
+    const atMaxDisplay = getVolumeZoneColor(legendMax, zones, legendMax);
+    
+    const getContrastColor = (bgColor: string) => {
+      const hex = bgColor.replace('#', '');
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.5 ? '#1e293b' : '#f8fafc';
+    };
+    
+    return {
+      atMv,
+      atMev,
+      atMrv,
+      atMaxv,
+      atMaxvPlus10,
+      atMaxDisplay,
+      showOverdrive,
+      textAtMv: getContrastColor(atMv),
+      textAtMev: getContrastColor(atMev),
+      textAtMrv: getContrastColor(atMrv),
+      textAtMaxv: getContrastColor(atMaxv),
+      textAtMaxDisplay: getContrastColor(atMaxvPlus10),
+    };
+  }, [zones, legendMax, showOverdrive]);
 
   return (
     <div id="all-muscles-graph" className="bg-black/70 rounded-xl border border-slate-700/50 overflow-hidden flex flex-col h-full min-h-0">
-      <div className="bg-black/70 p-3 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0 flex-wrap">
+      <div className="bg-black/70 p-3 flex items-center justify-between flex-shrink-0 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <h2 className="text-sm font-bold text-white truncate">{title}</h2>
-          {currentZone && (
-            <span 
-              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold"
-              style={{ backgroundColor: `${currentZone.color}20`, color: currentZone.color }}
-            >
-              {currentZone.full}
-            </span>
-          )}
+          <span className="text-[10px] text-slate-400 whitespace-nowrap">
+             {volumeDelta && volumeDelta.direction !== 'same' && (
+                  <span className={`flex items-center gap-0.5 ${volumeDelta.direction === 'up' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {volumeDelta.direction === 'up' ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                    {volumeDelta.formattedPercent} vs {weeklySetsWindow === '7d' ? 'prv wk' : weeklySetsWindow === '30d' ? 'prv mo' : 'prv yr'}
+                  </span>
+                )}
+          </span>
         </div>
         <div className="flex items-center gap-2">
-          {(selectedMuscle || activeQuickFilter) && (
+          {selectedMuscle && (
             <button onClick={clearSelection} className="p-1 hover:bg-black/60 rounded-lg transition-colors">
               <X className="w-4 h-4 text-slate-400" />
             </button>
@@ -211,61 +246,96 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-3 pb-2 text-[10px]">
-        <div className="flex items-center gap-1">
-          <span className="text-slate-400 font-medium">Total:</span>
-          <span className="text-white font-semibold">{Math.round(totalSetsInWindow)} sets</span>
+     
+
+      {/* Legend with gradient bar and arrow pointer */}
+      <div className="flex flex-col items-center px-4 pb-2">
+        <div className="relative w-full max-w-md">
+          {/* Arrow with info tooltip */}
+          {arrowPosition !== null && (
+            <div 
+              className="absolute -top-2 transform -translate-x-1/2 transition-all duration-300 z-10 flex flex-col items-center"
+              style={{ left: `${arrowPosition}%` }}
+            >
+              <div className="flex items-center gap-1  rounded px-2 py-1 text-[9px] whitespace-nowrap">
+                <span className="text-white font-semibold">avg {arrowValue.toFixed(1)} sets/wk</span>
+               
+              </div>
+              <Triangle 
+                className="w-3 h-3 fill-white text-white -mt-1" 
+                style={{ transform: 'rotate(180deg)' }}
+              />
+            </div>
+          )}
+          
+          {/* Gradient bar with inflection markers */}
+          <div className="relative flex items-center gap-2 text-[9px] pt-6">
+            <div className="flex-1 h-4 px-1 rounded-md overflow-hidden relative flex" style={{ 
+              background: `linear-gradient(to right, 
+                ${legendColors.atMv} 0%,
+                ${legendColors.atMev} ${(Math.min(zones.mev, legendMax) / legendMax) * 100}%,
+                ${legendColors.atMrv} ${(Math.min(zones.mrv, legendMax) / legendMax) * 100}%,
+                ${legendColors.atMaxv} ${(Math.min(zones.maxv, legendMax) / legendMax) * 100}%,
+                ${legendColors.atMaxv} ${(Math.min(zones.maxv + 0.1, legendMax) / legendMax) * 100}%,
+                ${legendColors.atMaxvPlus10} ${(Math.min(zones.maxv + 10, legendMax) / legendMax) * 100}%,
+                ${legendColors.atMaxDisplay} 100%)`
+            }}>
+              {/* Zone segments with labels inside */}
+              <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium" style={{ 
+                width: `${(Math.min(zones.mv, legendMax) / legendMax) * 100}%`,
+                background: 'transparent',
+                color: legendColors.textAtMv
+              }}>
+                <span className="drop-shadow-md">Activate</span>
+              </div>
+              <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium" style={{ 
+                width: `${(Math.min(zones.mev, legendMax) / legendMax) * 100}%`,
+                background: 'transparent',
+                color: legendColors.textAtMev
+              }}>
+                <span className="drop-shadow-sm">Stimulate</span>
+              </div>
+              <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium" style={{ 
+                width: `${(Math.min(zones.mrv, legendMax) / legendMax) * 100}%`,
+                background: 'transparent',
+                color: legendColors.textAtMrv
+              }}>
+                <span className="drop-shadow-md">Amplify</span>
+              </div>
+              {legendColors.showOverdrive ? (
+                <>
+                  <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium" style={{ 
+                    width: `${(Math.min(zones.maxv, legendMax) / legendMax) * 100}%`,
+                    background: 'transparent',
+                    color: legendColors.textAtMaxv
+                  }}>
+                    <span className="drop-shadow-md">Maximize</span>
+                  </div>
+                  <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium flex-1" style={{ 
+                    background: 'transparent',
+                    color: legendColors.textAtMaxvPlus10
+                  }}>
+                    <span className="drop-shadow-md">Overdrive</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium flex-1" style={{ 
+                  background: 'transparent',
+                  color: legendColors.textAtMaxv
+                }}>
+                  <span className="drop-shadow-md">Maximize</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <span className="text-slate-400 font-medium">Avg:</span>
-          <span className="text-blue-400 font-semibold">{weeklySetsSummary?.toFixed(1) || '0'}/wk</span>
-        </div>
-        {volumeDelta && volumeDelta.direction !== 'same' && (
-          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${volumeDelta.direction === 'up' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-            {volumeDelta.direction === 'up' ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-            {volumeDelta.formattedPercent} vs {weeklySetsWindow === '7d' ? 'wk' : weeklySetsWindow === '30d' ? 'mo' : 'yr'}
-          </span>
+        
+        {stimulusPercent !== null && (
+          <div className="relative w-full max-w-md mt-2">
+            <PossibleGainsBar percent={stimulusPercent} />
+          </div>
         )}
       </div>
-
-     <div className="flex justify-center px-12 pb-2">
-  <div className="flex items-center gap-6 text-[9px] pt-1">
-    
-    <div className="flex flex-col">
-      <div className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm bg-slate-500"></span>
-        <span className="text-slate-400">&lt;{zones.mv}</span>
-      </div>
-      <span className="text-slate-500">Maintenance</span>
-    </div>
-
-    <div className="flex flex-col">
-      <div className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm bg-yellow-500"></span>
-        <span className="text-slate-400">{zones.mv}-{zones.mev}</span>
-      </div>
-      <span className="text-slate-500">Growth</span>
-    </div>
-
-    <div className="flex flex-col">
-      <div className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm bg-green-500"></span>
-        <span className="text-slate-400">{zones.mev}-{zones.mrv}</span>
-      </div>
-      <span className="text-slate-500">Maximizing</span>
-    </div>
-
-    <div className="flex flex-col">
-      <div className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm bg-red-500"></span>
-        <span className="text-slate-400">&gt;{zones.mrv}</span>
-      </div>
-      <span className="text-slate-500">Specialization / Risk</span>
-    </div>
-
-  </div>
-</div>
-
 
       <div className="flex-1 min-h-0 px-2 pb-3">
         {trendData.length > 0 ? (
@@ -275,7 +345,7 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
               <defs>
                 <linearGradient id="zoneGradient" x1="0" y1="0" x2="1" y2="0">
                   {gradientStops.map((stop, idx) => (
-                    <stop key={idx} offset={`${stop.offset * 100}%`} stopColor={stop.color} stopOpacity={isDarkMode ? 0.2 : 0.5} />
+                    <stop key={idx} offset={`${stop.offset * 100}%`} stopColor={stop.color} stopOpacity={1} />
                   ))}
                 </linearGradient>
               </defs>
@@ -286,6 +356,16 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
                 axisLine={{ stroke: '#334155' }}
                 interval={0}
                 ticks={xTicks as any}
+                tickFormatter={(value) => {
+                  if (!value || typeof value !== 'string') return value;
+                  if (value.includes('-')) {
+                    const date = new Date(value);
+                    if (!isNaN(date.getTime())) {
+                      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }
+                  }
+                  return value;
+                }}
               />
               <YAxis
                 stroke="#94a3b8"
@@ -297,7 +377,7 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
                 width={30}
               />
               <RechartsTooltip
-                content={<CustomMuscleTooltip getZone={getZone} />}
+                content={<CustomMuscleTooltip volumeThresholds={volumeThresholds} />}
               />
               <Area
                 type="monotone"

@@ -27,16 +27,13 @@ export interface UseMuscleSelectionReturn {
   viewMode: ViewMode;
   weeklySetsWindow: WeeklySetsWindow;
   setWeeklySetsWindow: React.Dispatch<React.SetStateAction<WeeklySetsWindow>>;
-  activeQuickFilter: QuickFilterCategory | null;
-  setActiveQuickFilter: React.Dispatch<React.SetStateAction<QuickFilterCategory | null>>;
   selectedSvgIdForUrlRef: React.MutableRefObject<string | null>;
   clearSelectionUrl: () => void;
   updateSelectionUrl: (opts: { svgId: string; mode: ViewMode; window: WeeklySetsWindow }) => void;
-  handleQuickFilterClick: (category: QuickFilterCategory) => void;
   clearSelection: () => void;
 }
 
-export type QuickFilterCategory = 'PUS' | 'PUL' | 'LEG';
+
 
 export function useMuscleSelection({
   initialMuscle,
@@ -50,7 +47,6 @@ export function useMuscleSelection({
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
   const viewMode: ViewMode = 'headless';
   const [weeklySetsWindow, setWeeklySetsWindow] = useState<WeeklySetsWindow>('30d');
-  const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilterCategory | null>(null);
 
   // Track the selected SVG id for URL round-tripping
   const selectedSvgIdForUrlRef = useRef<string | null>(null);
@@ -60,10 +56,9 @@ export function useMuscleSelection({
   }, [navigate, location.pathname]);
 
   const updateSelectionUrl = useCallback(
-    (opts: { svgId: string; mode: ViewMode; window: WeeklySetsWindow }) => {
+    (opts: { svgId: string; window: WeeklySetsWindow }) => {
       const params = new URLSearchParams();
       params.set('muscle', opts.svgId);
-      params.set('view', opts.mode);
       params.set('window', opts.window);
       navigate({ pathname: location.pathname, search: `?${params.toString()}` });
     },
@@ -94,21 +89,8 @@ export function useMuscleSelection({
     }
   }, [initialWeeklySetsWindow, isLoading]);
 
-  // Handle quick filter click - auto-select muscles in category
-  const handleQuickFilterClick = useCallback((category: QuickFilterCategory) => {
-    if (activeQuickFilter === category) {
-      setActiveQuickFilter(null);
-    } else {
-      setActiveQuickFilter(category);
-      setSelectedMuscle(null);
-      selectedSvgIdForUrlRef.current = null;
-      clearSelectionUrl();
-    }
-  }, [activeQuickFilter, clearSelectionUrl]);
-
   const clearSelection = useCallback(() => {
     setSelectedMuscle(null);
-    setActiveQuickFilter(null);
     selectedSvgIdForUrlRef.current = null;
     clearSelectionUrl();
   }, [clearSelectionUrl]);
@@ -119,12 +101,9 @@ export function useMuscleSelection({
     viewMode,
     weeklySetsWindow,
     setWeeklySetsWindow,
-    activeQuickFilter,
-    setActiveQuickFilter,
     selectedSvgIdForUrlRef,
     clearSelectionUrl,
     updateSelectionUrl,
-    handleQuickFilterClick,
     clearSelection,
   };
 }

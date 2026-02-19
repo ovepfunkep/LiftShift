@@ -3,6 +3,7 @@ import { BodyMap } from '../../bodyMap/BodyMap';
 import { ExerciseThumbnail } from '../../common/ExerciseThumbnail';
 import { getExerciseMuscleVolumes, lookupExerciseMuscleData, toHeadlessVolumeMap, type ExerciseMuscleData } from '../../../utils/muscle/mapping';
 import type { ExerciseAsset } from '../../../utils/data/exerciseAssets';
+import type { MuscleVolumeThresholds } from '../../../utils/muscle/hypertrophy/muscleParams';
 import { ChevronDown } from 'lucide-react';
 
 interface MuscleAnalysisExerciseListProps {
@@ -10,6 +11,7 @@ interface MuscleAnalysisExerciseListProps {
   assetsMap: Map<string, ExerciseAsset> | null;
   exerciseMuscleData: Map<string, ExerciseMuscleData>;
   totalSetsInWindow: number;
+  volumeThresholds: MuscleVolumeThresholds;
   onExerciseClick?: (exerciseName: string) => void;
 }
 
@@ -22,6 +24,7 @@ export const MuscleAnalysisExerciseList: React.FC<MuscleAnalysisExerciseListProp
   assetsMap,
   exerciseMuscleData,
   totalSetsInWindow,
+  volumeThresholds,
   onExerciseClick,
 }) => {
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
@@ -38,7 +41,7 @@ export const MuscleAnalysisExerciseList: React.FC<MuscleAnalysisExerciseListProp
   return (
     <div className="px-4 mt-2">
       <div
-        className="space-y-2 overflow-y-auto max-h-[192px] sm:max-h-[264px]"
+        className="space-y-2 overflow-y-auto max-h-[250px]"
       >
         {displayedExercises.map((ex) => {
           const asset = assetsMap?.get(ex.name);
@@ -111,6 +114,8 @@ export const MuscleAnalysisExerciseList: React.FC<MuscleAnalysisExerciseListProp
                         selectedPart={null}
                         muscleVolumes={exHeadlessVolumes}
                         maxVolume={exHeadlessMaxVol}
+                        volumeThresholds={volumeThresholds}
+                        useExerciseColors
                         compact
                         compactFill
                         viewMode="headless"

@@ -48,15 +48,11 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
   const {
     selectedMuscle,
     setSelectedMuscle,
-    viewMode,
     weeklySetsWindow,
     setWeeklySetsWindow,
-    activeQuickFilter,
-    setActiveQuickFilter,
     selectedSvgIdForUrlRef,
     clearSelectionUrl,
     updateSelectionUrl,
-    handleQuickFilterClick,
     clearSelection,
   } = useMuscleSelection({
     initialMuscle,
@@ -107,16 +103,18 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
     windowStart,
     effectiveNow,
     weeklySetsWindow,
-    viewMode,
     selectedMuscle,
-    activeQuickFilter,
     filterCacheKey,
   });
 
   const {
     weeklySetsSummary,
+    legendMaxSets,
+    trainingLevel,
+    volumeThresholds,
     weeklySetsDelta,
     trendData,
+    legendTrendData,
     windowedSelectionBreakdown,
     contributingExercises,
     totalSets,
@@ -128,7 +126,6 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
     effectiveNow,
     allTimeWindowStart,
     weeklySetsWindow,
-    viewMode,
     selectedSubjectKeys,
     groupWeeklyRatesBySubject,
     headlessRatesMap,
@@ -143,16 +140,12 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
     selectedBodyMapIds,
     hoveredBodyMapIds,
   } = useMuscleAnalysisHandlers({
-    viewMode,
     selectedMuscle,
-    activeQuickFilter,
     setSelectedMuscle,
-    setActiveQuickFilter,
     selectedSvgIdForUrlRef,
     clearSelectionUrl,
     updateSelectionUrl,
     weeklySetsWindow,
-    windowedGroupVolumes,
     headlessRatesMap,
     setHoverTooltip,
   });
@@ -161,7 +154,6 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
     lifetimeHeadlessVolumes,
     weeklyHeadlessVolumes: headlessRatesMap,
     selectedMuscle,
-    viewMode,
   });
 
   if (isLoading) {
@@ -198,8 +190,6 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
         <div className="h-[400px] sm:h-[450px] lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:h-full min-h-0">
           <MuscleAnalysisBodyMapPanel
             bodyMapGender={bodyMapGender}
-            activeQuickFilter={activeQuickFilter}
-            onQuickFilterClick={handleQuickFilterClick}
             weeklySetsChartView={weeklySetsChartView}
             setWeeklySetsChartView={setWeeklySetsChartView}
             weeklySetsWindow={weeklySetsWindow}
@@ -208,6 +198,7 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
             updateSelectionUrl={updateSelectionUrl}
             muscleVolumes={muscleVolumes}
             maxVolume={maxVolume}
+            volumeThresholds={volumeThresholds}
             selectedMuscle={selectedMuscle}
             selectedBodyMapIds={selectedBodyMapIds}
             hoveredBodyMapIds={hoveredBodyMapIds}
@@ -222,11 +213,13 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
         <div className="h-[300px] sm:h-[350px] lg:col-start-2 lg:row-start-1 lg:h-full min-h-0">
           <MuscleAnalysisGraphPanel
             selectedMuscle={selectedMuscle}
-            activeQuickFilter={activeQuickFilter}
             weeklySetsWindow={weeklySetsWindow}
             weeklySetsSummary={weeklySetsSummary}
+            legendMaxSets={legendMaxSets}
+            volumeThresholds={volumeThresholds}
             volumeDelta={weeklySetsDelta}
             trendData={trendData}
+            legendTrendData={legendTrendData}
             windowedSelectionBreakdown={windowedSelectionBreakdown}
             clearSelection={clearSelection}
           />
@@ -239,6 +232,7 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
             assetsMap={assetsMap}
             exerciseMuscleData={exerciseMuscleData}
             totalSetsInWindow={windowedSelectionBreakdown?.totalSetsInWindow ?? 0}
+            volumeThresholds={volumeThresholds}
             onExerciseClick={onExerciseClick}
           />
         </div>
