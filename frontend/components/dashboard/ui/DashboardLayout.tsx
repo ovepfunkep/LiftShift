@@ -17,7 +17,7 @@ interface DashboardLayoutProps {
   totalPrs: number;
   dashboardInsights: any;
   onDayClick?: (date: Date) => void;
-  onMuscleClick?: (muscleId: string, viewMode: 'muscle' | 'group' | 'headless', weeklySetsWindow: 'all' | '7d' | '30d' | '365d') => void;
+  onMuscleClick?: (muscleId: string, weeklySetsWindow: 'all' | '7d' | '30d' | '365d') => void;
   onExerciseClick?: (exerciseName: string) => void;
   activePlateauExercises: any[];
   assetsMap?: Map<string, any> | null;
@@ -25,6 +25,7 @@ interface DashboardLayoutProps {
   weightUnit: WeightUnit;
   dailyData: DailySummary[];
   effectiveNow: Date;
+  trainingLevel: import('../../../utils/muscle/hypertrophy/muscleParams').TrainingLevel;
   chartModes: { volumeVsDuration: 'daily' | 'weekly' | 'monthly' | 'yearly'; intensityEvo: 'daily' | 'weekly' | 'monthly' | 'yearly'; prTrend: 'daily' | 'weekly' | 'monthly' | 'yearly' };
   toggleChartMode: (key: 'volumeVsDuration' | 'intensityEvo' | 'prTrend', mode: 'daily' | 'weekly' | 'monthly' | 'yearly') => void;
   prTrendView: 'area' | 'bar';
@@ -97,6 +98,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
     weightUnit,
     dailyData,
     effectiveNow,
+    trainingLevel,
     chartModes,
     toggleChartMode,
     prTrendView,
@@ -196,6 +198,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
           onMuscleClick={onMuscleClick}
           bodyMapGender={bodyMapGender}
           effectiveNow={effectiveNow}
+          trainingLevel={trainingLevel}
           intensityView={intensityView}
           setIntensityView={setIntensityView}
           intensityData={intensityData}

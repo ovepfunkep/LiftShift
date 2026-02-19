@@ -3,9 +3,10 @@ import { ExerciseStats } from '../../../types';
 import { ExerciseAssetLookup } from '../../../utils/exercise/exerciseAssetLookup';
 import { BodyMap, BodyMapGender } from '../../bodyMap/BodyMap';
 import { ExerciseThumbnail } from '../../common/ExerciseThumbnail';
-import { getVolumeColor } from '../../../utils/muscle/mapping';
+import { getExerciseMuscleColor } from '../../../utils/muscle/mapping';
 import { getTargetTextColor } from '../utils/exerciseViewUtils';
 import type { ExerciseMuscleTargets } from '../utils/exerciseViewTypes';
+import type { MuscleVolumeThresholds } from '../../../utils/muscle/hypertrophy/muscleParams';
 
 interface ExerciseOverviewCardProps {
   selectedStats: ExerciseStats;
@@ -14,6 +15,7 @@ interface ExerciseOverviewCardProps {
   selectedExerciseMuscleInfo: ExerciseMuscleTargets;
   selectedExerciseHeadlessVolumes: Map<string, number>;
   selectedExerciseHeadlessMaxVolume: number;
+  volumeThresholds: MuscleVolumeThresholds;
   exerciseBodyMapHoverMeta: { name: string; role: string } | null;
   onBodyMapHover: (muscleId: string | null) => void;
 }
@@ -25,6 +27,7 @@ export const ExerciseOverviewCard: React.FC<ExerciseOverviewCardProps> = ({
   selectedExerciseMuscleInfo,
   selectedExerciseHeadlessVolumes,
   selectedExerciseHeadlessMaxVolume,
+  volumeThresholds,
   exerciseBodyMapHoverMeta,
   onBodyMapHover,
 }) => {
@@ -37,6 +40,8 @@ export const ExerciseOverviewCard: React.FC<ExerciseOverviewCardProps> = ({
           selectedPart={null}
           muscleVolumes={selectedExerciseHeadlessVolumes}
           maxVolume={selectedExerciseHeadlessMaxVolume}
+          volumeThresholds={volumeThresholds}
+          useExerciseColors
           compact
           interactive
           gender={bodyMapGender}
@@ -45,7 +50,7 @@ export const ExerciseOverviewCard: React.FC<ExerciseOverviewCardProps> = ({
         />
 
         {exerciseBodyMapHoverMeta && (
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 border border-slate-700/50 rounded-md px-2 py-1 shadow-xl pointer-events-none z-20">
+          <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-black/90 border border-slate-700/50 rounded-md px-2 py-1 shadow-xl pointer-events-none z-20 max-w-[180px]">
             <div className="font-semibold text-[10px] text-center whitespace-nowrap text-white">
               {exerciseBodyMapHoverMeta.name}
             </div>
@@ -54,6 +59,9 @@ export const ExerciseOverviewCard: React.FC<ExerciseOverviewCardProps> = ({
                 {exerciseBodyMapHoverMeta.role}
               </div>
             ) : null}
+            <div className="text-[8px] text-center text-slate-400 mt-0.5 leading-tight">
+              {exerciseBodyMapHoverMeta.zoneLabel}: {exerciseBodyMapHoverMeta.zoneExplanation}
+            </div>
           </div>
         )}
       </div>
@@ -70,8 +78,8 @@ export const ExerciseOverviewCard: React.FC<ExerciseOverviewCardProps> = ({
                     key={`primary-${t.label}`}
                     className="px-2 py-0.5 rounded-md text-[10px] font-semibold border border-slate-900/10"
                     style={{
-                      backgroundColor: getVolumeColor(t.sets, selectedExerciseMuscleInfo.maxVolume),
-                      color: getTargetTextColor(t.sets, selectedExerciseMuscleInfo.maxVolume),
+                      backgroundColor: getExerciseMuscleColor(t.sets),
+                      color: getTargetTextColor(t.sets, 1),
                     }}
                   >
                     {t.label}
@@ -90,8 +98,8 @@ export const ExerciseOverviewCard: React.FC<ExerciseOverviewCardProps> = ({
                     key={`secondary-${t.label}`}
                     className="px-2 py-0.5 rounded-md text-[10px] font-semibold border border-slate-900/10"
                     style={{
-                      backgroundColor: getVolumeColor(t.sets, selectedExerciseMuscleInfo.maxVolume),
-                      color: '#ffffff',
+                      backgroundColor: getExerciseMuscleColor(t.sets),
+                      color: '#1e293b',
                     }}
                   >
                     {t.label}
