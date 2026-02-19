@@ -134,8 +134,6 @@ const App: React.FC = () => {
     setDateMode,
     exerciseTrendMode,
     setExerciseTrendMode,
-    heatmapTheme,
-    setHeatmapTheme,
   } = useAppPreferences();
 
   const {
@@ -352,8 +350,6 @@ const App: React.FC = () => {
         onBodyMapGenderChange={setBodyMapGender}
         themeMode={mode}
         onThemeModeChange={setMode}
-        heatmapTheme={heatmapTheme}
-        onHeatmapThemeChange={setHeatmapTheme}
         dateMode={dateMode}
         onDateModeChange={setDateMode}
         exerciseTrendMode={exerciseTrendMode}

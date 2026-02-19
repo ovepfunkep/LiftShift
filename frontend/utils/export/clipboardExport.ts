@@ -5,12 +5,13 @@ import { getEffectiveNowFromWorkoutData, getSessionKey, isPlausibleDate } from '
 import { isWarmupSet } from '../analysis/classification';
 import { getWeightUnit, WeightUnit } from '../storage/localStorage';
 import { convertWeight } from '../format/units';
+import { TrainingLevel, getTrainingLevel } from '../muscle/hypertrophy/muscleParams';
 
 export type ExperienceLevel = 'Newbie' | 'Beginner' | 'Early Intermediate' | 'Intermediate' | 'Advanced' | 'Elite';
 
-export const calculateTrainingExperience = (sets: WorkoutSet[], now = new Date()): { monthsTraining: number; level: ExperienceLevel } => {
+export const calculateTrainingExperience = (sets: WorkoutSet[], now = new Date()): { monthsTraining: number; level: ExperienceLevel; simplifiedLevel: TrainingLevel } => {
   if (!sets || sets.length === 0) {
-    return { monthsTraining: 0, level: 'Newbie' };
+    return { monthsTraining: 0, level: 'Newbie', simplifiedLevel: 'beginner' };
   }
 
   const referenceNow = getEffectiveNowFromWorkoutData(sets, now);
@@ -21,7 +22,7 @@ export const calculateTrainingExperience = (sets: WorkoutSet[], now = new Date()
     .filter((d): d is Date => !!d && isPlausibleDate(d));
   
   if (dates.length === 0) {
-    return { monthsTraining: 0, level: 'Newbie' };
+    return { monthsTraining: 0, level: 'Newbie', simplifiedLevel: 'beginner' };
   }
 
   const earliestDate = min(dates);
@@ -41,7 +42,7 @@ export const calculateTrainingExperience = (sets: WorkoutSet[], now = new Date()
     level = 'Advanced'; // Note: Elite logic would need competition_level data
   }
 
-  return { monthsTraining, level };
+  return { monthsTraining, level, simplifiedLevel: getTrainingLevel(monthsTraining) };
 };
 
 export interface ExportPackage {
@@ -204,7 +205,7 @@ const formatSetsAsText = (
   const parts: string[] = [];
 
   // Prompt first with experience level
-  const promptWithExperience = promptTemplate.replace('I am a {}', `I am a ${experience.level}`);
+  const promptWithExperience = promptTemplate.replace('I am a {}', `I am a ${experience.simplifiedLevel}`);
   parts.push(promptWithExperience);
   parts.push('');
 
