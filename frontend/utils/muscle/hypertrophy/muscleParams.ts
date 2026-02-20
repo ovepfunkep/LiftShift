@@ -35,39 +35,27 @@ export function getTrainingLevel(monthsTraining: number): TrainingLevel {
 
 // ---------------------------------------------------------------------------
 // Per-muscle hypertrophy parameters
-//
-// Weekly stimulus parameters (logistic dose-response):
-//   steepness  – how sharply the curve rises around the inflection
-//   inflection – sets/wk at which the muscle is at 50% of its weekly stimulus curve
-//
-// Lifetime achievement parameters (hyperbolic saturation):
-//   halfLife   – total lifetime sets at which 50% of natural potential is reached
-//   ceiling    – the soft asymptote (never truly reached); represents the
-//                theoretical max % of genetic potential achievable through
-//                volume alone. Kept < 100 so the number always feels honest.
-//
-// Design rationale
-// ----------------
-// Large muscles tolerate and require more volume to fully stimulate both on a
-// weekly and career basis. Small muscles saturate faster. The numbers are
-// calibrated so that:
-//   - A beginner (< 1 yr) sees ~15-30% lifetime achievement  -> motivating
-//   - An intermediate (2-4 yrs) sees ~35-55%                  -> realistic
-//   - Advanced (5-8 yrs) sees ~55-70%                         -> rewarding
-//   - Elite (10+ yrs) sees ~70-82%                            -> aspirational
-//   - No one ever hits 90%+ unless truly extreme volume       -> honest
 // ---------------------------------------------------------------------------
+export interface MuscleHypertrophyParams {
+  /** Human-readable display name */
+  readonly name: string;
+  /** Size bucket */
+  readonly size: MuscleSizeCategory;
 
-// ---------------------------------------------------------------------------
-// Volume thresholds (single source of truth)
-// ---------------------------------------------------------------------------
+  // --- Weekly stimulus (logistic) ---
+  /** Steepness of logistic curve */
+  readonly weeklySteepness: number;
+  /** Inflection point in sets/wk */
+  readonly weeklyInflection: number;
+}
+
 export const DEFAULT_VOLUME_THRESHOLDS: MuscleVolumeThresholds = {
   mv: 6,
   mev: 13,
   mrv: 21,
   maxv: 25,
 };
- 
+
 export function getVolumeThresholds(trainingLevel?: TrainingLevel): MuscleVolumeThresholds {
   if (trainingLevel && trainingLevel in VOLUME_THRESHOLDS_BY_LEVEL) {
     return VOLUME_THRESHOLDS_BY_LEVEL[trainingLevel];
@@ -175,27 +163,8 @@ export function getVolumeZone(sets: number, thresholds: MuscleVolumeThresholds):
 }
 
 // ---------------------------------------------------------------------------
-// Per-muscle parameters (lifetime achievement only)
+// Per-muscle hypertrophy parameters (weekly stimulus only)
 // ---------------------------------------------------------------------------
-export interface MuscleHypertrophyParams {
-  /** Human-readable display name */
-  readonly name: string;
-  /** Size bucket */
-  readonly size: MuscleSizeCategory;
-
-  // --- Weekly stimulus (logistic) ---
-  /** Steepness of logistic curve */
-  readonly weeklySteepness: number;
-  /** Inflection point in sets/wk */
-  readonly weeklyInflection: number;
-
-  // --- Lifetime achievement (hyperbolic saturation) ---
-  /** Lifetime sets at which 50% of ceiling is reached */
-  readonly lifetimeHalfLife: number;
-  /** Soft asymptote – max achievable % (0-100) */
-  readonly lifetimeCeiling: number;
-}
-
 /**
  * Central muscle parameter table.
  *
@@ -210,48 +179,36 @@ export const MUSCLE_PARAMS: Readonly<Record<HeadlessMuscleId, MuscleHypertrophyP
     size: 'large',
     weeklySteepness: 0.25,
     weeklyInflection: 12,
-    lifetimeHalfLife: 4500,
-    lifetimeCeiling: 88,
   },
   lats: {
     name: 'Lats',
     size: 'large',
     weeklySteepness: 0.25,
     weeklyInflection: 12,
-    lifetimeHalfLife: 4200,
-    lifetimeCeiling: 88,
   },
   glutes: {
     name: 'Glutes',
     size: 'large',
     weeklySteepness: 0.25,
     weeklyInflection: 11,
-    lifetimeHalfLife: 4000,
-    lifetimeCeiling: 87,
   },
   hamstrings: {
     name: 'Hamstrings',
     size: 'large',
     weeklySteepness: 0.27,
     weeklyInflection: 11,
-    lifetimeHalfLife: 3800,
-    lifetimeCeiling: 87,
   },
   chest: {
     name: 'Chest',
     size: 'large',
     weeklySteepness: 0.28,
     weeklyInflection: 10,
-    lifetimeHalfLife: 3500,
-    lifetimeCeiling: 86,
   },
     shoulders: {
     name: 'Shoulders',
     size: 'large',
     weeklySteepness: 0.30,
     weeklyInflection: 10,
-    lifetimeHalfLife: 3000,
-    lifetimeCeiling: 84,
   },
 
   // ── Medium muscles ───────────────────────────────────────────────────
@@ -261,48 +218,36 @@ export const MUSCLE_PARAMS: Readonly<Record<HeadlessMuscleId, MuscleHypertrophyP
     size: 'medium',
     weeklySteepness: 0.30,
     weeklyInflection: 9,
-    lifetimeHalfLife: 2800,
-    lifetimeCeiling: 83,
   },
   triceps: {
     name: 'Triceps',
     size: 'medium',
     weeklySteepness: 0.32,
     weeklyInflection: 9,
-    lifetimeHalfLife: 2600,
-    lifetimeCeiling: 83,
   },
   biceps: {
     name: 'Biceps',
     size: 'medium',
     weeklySteepness: 0.32,
     weeklyInflection: 9,
-    lifetimeHalfLife: 2400,
-    lifetimeCeiling: 82,
   },
   abdominals: {
     name: 'Abs',
     size: 'medium',
     weeklySteepness: 0.30,
     weeklyInflection: 9,
-    lifetimeHalfLife: 2500,
-    lifetimeCeiling: 82,
   },
   lowerback: {
     name: 'Lower Back',
     size: 'medium',
     weeklySteepness: 0.30,
     weeklyInflection: 8,
-    lifetimeHalfLife: 2600,
-    lifetimeCeiling: 83,
   },
   adductors: {
     name: 'Adductors',
     size: 'medium',
     weeklySteepness: 0.30,
     weeklyInflection: 8,
-    lifetimeHalfLife: 2400,
-    lifetimeCeiling: 82,
   },
 
   // ── Small muscles ────────────────────────────────────────────────────
@@ -311,24 +256,18 @@ export const MUSCLE_PARAMS: Readonly<Record<HeadlessMuscleId, MuscleHypertrophyP
     size: 'small',
     weeklySteepness: 0.35,
     weeklyInflection: 8,
-    lifetimeHalfLife: 2000,
-    lifetimeCeiling: 80,
   },
   forearms: {
     name: 'Forearms',
     size: 'small',
     weeklySteepness: 0.35,
     weeklyInflection: 7,
-    lifetimeHalfLife: 1800,
-    lifetimeCeiling: 78,
   },
   obliques: {
     name: 'Obliques',
     size: 'small',
     weeklySteepness: 0.35,
     weeklyInflection: 7,
-    lifetimeHalfLife: 1800,
-    lifetimeCeiling: 78,
   },
 };
 

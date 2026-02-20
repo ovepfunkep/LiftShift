@@ -1,26 +1,23 @@
 import { useMemo } from 'react';
-import {
-  computeAllMuscleAchievements,
-  computeOverallAchievement,
-  getTier,
-} from '../../../utils/muscle/hypertrophy';
-import type { MuscleAchievementEntry, AchievementTier } from '../../../utils/muscle/hypertrophy';
+import { calculateAchievement, findTierByAchievement, JOURNEY_TIERS } from '../../../utils/training/tierUtils';
 import type { HeadlessMuscleId } from '../../../utils/muscle/mapping/muscleHeadless';
 
+interface LifetimeAchievementEntry {
+  muscleId: string;
+  name: string;
+  lifetimeSets: number;
+  weeklySets: number;
+  achievement: number;
+  tier: typeof JOURNEY_TIERS[0];
+}
+
 export interface LifetimeAchievementData {
-  /** Overall weighted achievement % across all muscles */
   overallPercent: number;
-  /** Overall tier */
-  overallTier: AchievementTier;
-  /** Per-muscle breakdown (sorted highest achievement first) */
-  muscles: MuscleAchievementEntry[];
-  /** Context-specific achievement (for selected muscle, or overall if nothing selected) */
+  overallTier: { key: string; label: string; description: string; color: string; hexColor: string };
+  muscles: LifetimeAchievementEntry[];
   contextPercent: number;
-  /** Context-specific tier */
-  contextTier: AchievementTier;
-  /** Context label (e.g., "Chest", or "Overall") */
+  contextTier: { key: string; label: string; description: string; color: string; hexColor: string };
   contextLabel: string;
-  /** Total lifetime sets across all muscles */
   totalLifetimeSets: number;
 }
 
@@ -32,9 +29,6 @@ interface UseLifetimeAchievementParams {
 
 /**
  * Computes lifetime hypertrophy achievement data for the current selection context.
- *
- * - No selection → overall weighted average
- * - Muscle selected → that specific muscle's achievement
  */
 export function useLifetimeAchievement({
   lifetimeHeadlessVolumes,
@@ -42,12 +36,36 @@ export function useLifetimeAchievement({
   selectedMuscle,
 }: UseLifetimeAchievementParams): LifetimeAchievementData {
   return useMemo(() => {
-    const muscles = computeAllMuscleAchievements(lifetimeHeadlessVolumes, weeklyHeadlessVolumes);
-    const overallPercent = computeOverallAchievement(lifetimeHeadlessVolumes);
-    const overallTier = getTier(overallPercent);
-
+    // Calculate per-muscle achievements using new simplified formula
+    const muscles: LifetimeAchievementEntry[] = [];
     let totalLifetimeSets = 0;
-    for (const v of lifetimeHeadlessVolumes.values()) totalLifetimeSets += v;
+
+    for (const [muscleId, lifetimeSets] of lifetimeHeadlessVolumes) {
+      const weeklySets = weeklyHeadlessVolumes?.get(muscleId) ?? 0;
+      const achievement = calculateAchievement(lifetimeSets);
+      const tier = findTierByAchievement(achievement);
+
+      totalLifetimeSets += lifetimeSets;
+
+      muscles.push({
+        muscleId,
+        name: muscleId.charAt(0).toUpperCase() + muscleId.slice(1),
+        lifetimeSets,
+        weeklySets,
+        achievement,
+        tier,
+      });
+    }
+
+    // Sort by achievement (highest first)
+    muscles.sort((a, b) => b.achievement - a.achievement);
+
+    // Calculate overall from top 10 muscles only
+    const overallPercent = muscles.length > 0
+      ? muscles.slice(0, 10).reduce((sum, m) => sum + m.achievement, 0) / Math.min(muscles.length, 10)
+      : 0;
+    const overallTier = findTierByAchievement(overallPercent);
+
     totalLifetimeSets = Math.round(totalLifetimeSets * 10) / 10;
 
     // No selection → show overall
@@ -70,7 +88,7 @@ export function useLifetimeAchievement({
         overallPercent,
         overallTier,
         muscles,
-        contextPercent: entry.achievementPercent,
+        contextPercent: entry.achievement,
         contextTier: entry.tier,
         contextLabel: entry.name,
         totalLifetimeSets,

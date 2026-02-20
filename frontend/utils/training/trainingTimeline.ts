@@ -1,42 +1,40 @@
 import type { TrainingLevel } from '../muscle/hypertrophy/muscleParams';
+import {
+  JOURNEY_TIERS,
+  calculateAchievement,
+  findTierByAchievement,
+  calculateProgressToNextTier,
+  getNextTier,
+  estimateWeeksToNextTier,
+  getTierColor,
+  getTierByKey,
+  type TierDef,
+} from './tierUtils';
+
+// Re-export for backward compatibility
+export type { TierDef };
+export { JOURNEY_TIERS, getTierColor, getTierByKey };
 
 // ---------------------------------------------------------------------------
 // Training Timeline – Unified sets + months progression system
 // ---------------------------------------------------------------------------
 
-/** A single checkpoint/milestone on the training timeline */
-export interface TimelineCheckpointDef {
-  /** Unique key for this checkpoint */
-  readonly key: string;
-  /** Display label */
-  readonly label: string;
-  /** Short motivational description */
-  readonly description: string;
-  /** Which core phase this belongs to */
-  readonly phase: TrainingLevel;
-  /** Position within its phase: 0 = start, 1 = middle, 2 = end */
-  readonly positionInPhase: 0 | 1 | 2;
-  /** Position on 0-100% scale (non-linear: early tiers condensed, later tiers sparse) */
-  readonly positionPercent: number;
-  /** Tailwind text color class */
-  readonly color: string;
-  /** Hex color for visual elements */
-  readonly hexColor: string;
-}
+/** Alias for backward compatibility */
+export type TimelineCheckpointDef = TierDef;
 
 /** Progress snapshot returned by the timeline calculator */
 export interface TimelineProgress {
   /** Unified score (0-100) combining sets and months */
   readonly unifiedScore: number;
   /** Current checkpoint the user is at or has passed */
-  readonly currentCheckpoint: TimelineCheckpointDef;
+  readonly currentCheckpoint: TierDef;
   /** Next checkpoint to reach, or null if at max (Legend) */
-  readonly nextCheckpoint: TimelineCheckpointDef | null;
+  readonly nextCheckpoint: TierDef | null;
   /** Progress within current → next checkpoint (0-100) */
   readonly progressToNext: number;
   /** Remaining % points to reach next checkpoint */
   readonly remainingToNext: number;
-  /** Index of current checkpoint in CHECKPOINTS array */
+  /** Index of current checkpoint in JOURNEY_TIERS array */
   readonly currentIndex: number;
   /** The resolved core training level for volume thresholds */
   readonly trainingLevel: TrainingLevel;
@@ -56,111 +54,12 @@ export interface TimelineProgress {
   readonly checkpointAchievedAtMonths: ReadonlyMap<string, number | null>;
 }
 
-// ---------------------------------------------------------------------------
-// Constants – checkpoint definitions (9 checkpoints, 3 per phase)
-// ---------------------------------------------------------------------------
-
-export const CHECKPOINTS: readonly TimelineCheckpointDef[] = [
-  // ── Beginner phase ────────────────────────────────────────────────────────
-  {
-    key: 'seedling',
-    label: 'Seedling',
-    description: 'Just getting started. Focus on learning movements and building the habit.',
-    phase: 'beginner',
-    positionInPhase: 0,
-    positionPercent: 0,
-    color: 'text-slate-400',
-    hexColor: '#94a3b8',
-  },
-  {
-    key: 'sprout',
-    label: 'Sprout',
-    description: 'You have a workout routine. Keep showing up consistently.',
-    phase: 'beginner',
-    positionInPhase: 1,
-    positionPercent: 2,
-    color: 'text-slate-500',
-    hexColor: '#64748b',
-  },
-  {
-    key: 'sapling',
-    label: 'Sapling',
-    description: 'You train regularly. Now focus on progressive overload.',
-    phase: 'beginner',
-    positionInPhase: 2,
-    positionPercent: 4,
-    color: 'text-blue-400',
-    hexColor: '#60a5fa',
-  },
-
-  // ── Intermediate phase ──────────────────────────────────────────────────
-  {
-    key: 'foundation',
-    label: 'Foundation',
-    description: 'You have solid fundamentals. Time to build muscle mass.',
-    phase: 'intermediate',
-    positionInPhase: 0,
-    positionPercent: 7,
-    color: 'text-blue-400',
-    hexColor: '#60a5fa',
-  },
-  {
-    key: 'builder',
-    label: 'Builder',
-    description: 'Noticeable muscle growth. Push for progressive overload.',
-    phase: 'intermediate',
-    positionInPhase: 1,
-    positionPercent: 14,
-    color: 'text-emerald-400',
-    hexColor: '#34d399',
-  },
-  {
-    key: 'sculptor',
-    label: 'Sculptor',
-    description: 'Significant muscle development. Refine your physique.',
-    phase: 'intermediate',
-    positionInPhase: 2,
-    positionPercent: 25,
-    color: 'text-lime-400',
-    hexColor: '#a3e635',
-  },
-
-  // ── Advanced phase ────────────────────────────────────────────────────────
-  {
-    key: 'elite',
-    label: 'Elite',
-    description: 'Impressive dedication. Fine-tune your training and nutrition.',
-    phase: 'advanced',
-    positionInPhase: 0,
-    positionPercent: 35,
-    color: 'text-amber-400',
-    hexColor: '#fbbf24',
-  },
-  {
-    key: 'master',
-    label: 'Master',
-    description: 'Elite-level dedication. Maintain and refine your masterpiece.',
-    phase: 'advanced',
-    positionInPhase: 1,
-    positionPercent: 55,
-    color: 'text-orange-400',
-    hexColor: '#fb923c',
-  },
-  {
-    key: 'legend',
-    label: 'Legend',
-    description: 'The pinnacle of fitness dedication. You have earned your legacy.',
-    phase: 'advanced',
-    positionInPhase: 2,
-    positionPercent: 100,
-    color: 'text-red-400',
-    hexColor: '#f87171',
-  },
-];
+/** Alias for backward compatibility */
+export const CHECKPOINTS = JOURNEY_TIERS;
 
 /** Helper: get checkpoints belonging to a given phase */
-export function getPhaseCheckpoints(phase: TrainingLevel): TimelineCheckpointDef[] {
-  return CHECKPOINTS.filter(c => c.phase === phase);
+export function getPhaseCheckpoints(phase: TrainingLevel): TierDef[] {
+  return JOURNEY_TIERS.filter(c => c.phase === phase);
 }
 
 // ---------------------------------------------------------------------------
@@ -185,8 +84,8 @@ export function calculateUnifiedScore(totalSets: number, monthsTraining: number)
  */
 export function findCurrentCheckpointIndexByScore(unifiedScore: number): number {
   let idx = 0;
-  for (let i = CHECKPOINTS.length - 1; i >= 0; i--) {
-    if (unifiedScore >= CHECKPOINTS[i].positionPercent) {
+  for (let i = JOURNEY_TIERS.length - 1; i >= 0; i--) {
+    if (unifiedScore >= JOURNEY_TIERS[i].positionPercent) {
       idx = i;
       break;
     }
@@ -212,11 +111,11 @@ export function computeTimelineProgress(
   // Calculate unified score first
   const unifiedScore = calculateUnifiedScore(totalSets, monthsTraining);
   const currentIndex = findCurrentCheckpointIndexByScore(unifiedScore);
-  const currentCheckpoint = CHECKPOINTS[currentIndex];
-  const isLegend = currentIndex === CHECKPOINTS.length - 1;
+  const currentCheckpoint = JOURNEY_TIERS[currentIndex];
+  const isLegend = currentIndex === JOURNEY_TIERS.length - 1;
 
-  const nextCheckpoint = !isLegend && currentIndex < CHECKPOINTS.length - 1
-    ? CHECKPOINTS[currentIndex + 1]
+  const nextCheckpoint = !isLegend && currentIndex < JOURNEY_TIERS.length - 1
+    ? JOURNEY_TIERS[currentIndex + 1]
     : null;
 
   // Calculate progress to next based on unified score and checkpoint positions
@@ -243,7 +142,7 @@ export function computeTimelineProgress(
   // Estimate when each checkpoint was achieved (simple linear interpolation)
   const checkpointAchievedAtMonths = new Map<string, number | null>();
   if (unifiedScore > 0 && monthsTraining > 0) {
-    for (const cp of CHECKPOINTS) {
+    for (const cp of JOURNEY_TIERS) {
       if (cp.positionPercent <= unifiedScore && cp.positionPercent > 0) {
         const achievedAt = (cp.positionPercent / unifiedScore) * monthsTraining;
         checkpointAchievedAtMonths.set(cp.key, Math.round(achievedAt * 10) / 10);
@@ -296,3 +195,9 @@ export function formatMonths(n: number): string {
   const years = n / 12;
   return `${years.toFixed(1)} year${years !== 1 ? 's' : ''}`;
 }
+
+// ---------------------------------------------------------------------------
+// Re-exports from tierUtils
+// ---------------------------------------------------------------------------
+
+export { calculateAchievement, findTierByAchievement, getNextTier, estimateWeeksToNextTier };
