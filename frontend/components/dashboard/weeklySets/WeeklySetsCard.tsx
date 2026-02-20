@@ -62,6 +62,7 @@ export const WeeklySetsCard = ({
 
   const headlessVolumes = useMemo(() => toHeadlessVolumeMap(heatmap.volumes), [heatmap.volumes]);
   const radarData = useMemo(() => getHeadlessRadarSeries(headlessVolumes), [headlessVolumes]);
+  const volumeThresholds = useMemo(() => getVolumeThresholds(trainingLevel), [trainingLevel]);
 
   const handleMuscleHover = useCallback((muscleId: string | null, e?: MouseEvent) => {
     if (!muscleId || !e) {
@@ -81,9 +82,8 @@ export const WeeklySetsCard = ({
     setHeatmapHoveredMuscle(muscleId);
 
     const rate = headlessVolumes.get(muscleId) || 0;
-    const thresholds = getVolumeThresholds(trainingLevel);
-    const stimulus = weeklyStimulusFromThresholds(rate, thresholds);
-    const zone = getVolumeZone(rate, thresholds);
+    const stimulus = weeklyStimulusFromThresholds(rate, volumeThresholds);
+    const zone = getVolumeZone(rate, volumeThresholds);
     const bodyText = `${rate.toFixed(1)} sets/wk — ${zone.label}\n${stimulus}% of wkly possible gains\n${zone.explanation}`;
 
     setHoverTooltip({
@@ -92,7 +92,7 @@ export const WeeklySetsCard = ({
       body: bodyText,
       status: rate > 0 ? 'success' : 'default',
     });
-  }, [headlessVolumes]);
+  }, [headlessVolumes, volumeThresholds]);
 
   const weeklySetsInsight = useMemo(() => {
     const hasData = radarData.some((d) => (d.value ?? 0) > 0);
@@ -146,6 +146,7 @@ export const WeeklySetsCard = ({
             onBodyMapClick={handleBodyMapClick}
             bodyMapGender={bodyMapGender}
             onMuscleHover={handleMuscleHover}
+            volumeThresholds={volumeThresholds}
           />
         )}
       </div>

@@ -2,6 +2,7 @@ export { MUSCLE_PARAMS, getMuscleParams, ALL_PARAM_MUSCLE_IDS, getVolumeThreshol
 export type { MuscleHypertrophyParams, MuscleSizeCategory, MuscleVolumeThresholds } from './muscleParams';
 export {
   weeklyStimulus,
+  weeklyStimulusFromThresholds,
   lifetimeAchievement,
   getTier,
   computeAllMuscleAchievements,

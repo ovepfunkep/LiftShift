@@ -2,6 +2,7 @@ import React from 'react';
 import type { BodyMapGender } from '../../bodyMap/BodyMap';
 import type { DailySummary, ExerciseStats, WorkoutSet } from '../../../types';
 import type { WeightUnit } from '../../../utils/storage/localStorage';
+import type { TimelineProgress } from '../../../utils/training/trainingTimeline';
 import { DashboardHeaderBar } from './DashboardHeaderBar';
 import { DashboardInsightsSection } from './DashboardInsightsSection';
 import { DashboardPrimaryCharts } from './DashboardPrimaryCharts';
@@ -26,6 +27,7 @@ interface DashboardLayoutProps {
   dailyData: DailySummary[];
   effectiveNow: Date;
   trainingLevel: import('../../../utils/muscle/hypertrophy/muscleParams').TrainingLevel;
+  timelineProgress: TimelineProgress;
   chartModes: { volumeVsDuration: 'daily' | 'weekly' | 'monthly' | 'yearly'; intensityEvo: 'daily' | 'weekly' | 'monthly' | 'yearly'; prTrend: 'daily' | 'weekly' | 'monthly' | 'yearly' };
   toggleChartMode: (key: 'volumeVsDuration' | 'intensityEvo' | 'prTrend', mode: 'daily' | 'weekly' | 'monthly' | 'yearly') => void;
   prTrendView: 'area' | 'bar';
@@ -99,6 +101,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
     dailyData,
     effectiveNow,
     trainingLevel,
+    timelineProgress,
     chartModes,
     toggleChartMode,
     prTrendView,
@@ -178,6 +181,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
           assetsLowerMap={assetsLowerMap}
           dailyData={dailyData}
           onAIAnalyze={() => setAiAnalyzeOpen(true)}
+          timelineProgress={timelineProgress}
         />
 
         <DashboardPrimaryCharts

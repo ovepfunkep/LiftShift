@@ -148,6 +148,7 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
     weeklySetsWindow,
     headlessRatesMap,
     setHoverTooltip,
+    trainingLevel,
   });
 
   const lifetimeAchievementData = useLifetimeAchievement({

@@ -2,6 +2,7 @@ import React from 'react';
 import { BodyMap, type BodyMapGender } from '../../bodyMap/BodyMap';
 import { LazyRender } from '../../ui/LazyRender';
 import { ChartSkeleton } from '../../ui/ChartSkeleton';
+import type { MuscleVolumeThresholds } from '../../../utils/muscle/hypertrophy/muscleParams';
 
 interface HeatmapData {
   volumes: Map<string, number>;
@@ -15,6 +16,7 @@ interface WeeklySetsHeatmapViewProps {
   onBodyMapClick: (muscleId: string) => void;
   bodyMapGender?: BodyMapGender;
   onMuscleHover?: (muscleId: string | null, e?: MouseEvent) => void;
+  volumeThresholds: MuscleVolumeThresholds;
 }
 
 export const WeeklySetsHeatmapView: React.FC<WeeklySetsHeatmapViewProps> = ({
@@ -24,6 +26,7 @@ export const WeeklySetsHeatmapView: React.FC<WeeklySetsHeatmapViewProps> = ({
   onBodyMapClick,
   bodyMapGender,
   onMuscleHover,
+  volumeThresholds,
 }) => {
 
   return (
@@ -45,6 +48,7 @@ export const WeeklySetsHeatmapView: React.FC<WeeklySetsHeatmapViewProps> = ({
                 onPartHover={onMuscleHover}
                 gender={bodyMapGender}
                 viewMode="headless"
+                volumeThresholds={volumeThresholds}
               />
             </div>
           </div>

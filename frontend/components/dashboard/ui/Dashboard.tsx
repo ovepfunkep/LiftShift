@@ -21,6 +21,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useDashboardPlateaus } from '../hooks/useDashboardPlateaus';
 import { useWeeklyRhythm } from '../hooks/useWeeklyRhythm';
 import { useTrainingLevel } from '../../../hooks/app/useTrainingLevel';
+import { useTrainingTimeline } from '../../../hooks/app/useTrainingTimeline';
 
 interface DashboardProps {
   dailyData: DailySummary[];
@@ -62,6 +63,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Calculate user's training level for personalized volume thresholds
   const { trainingLevel } = useTrainingLevel(fullData, effectiveNow);
+
+  // Calculate training timeline progress (hybrid sessions + months)
+  const timelineProgress = useTrainingTimeline(fullData, effectiveNow);
 
   const spanDays = useMemo(() => {
     if (!fullData.length) return 0;
@@ -262,6 +266,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       dailyData={dailyData}
       effectiveNow={effectiveNow}
       trainingLevel={trainingLevel}
+      timelineProgress={timelineProgress}
       chartModes={chartModes}
       toggleChartMode={toggleChartMode}
       prTrendView={prTrendView}

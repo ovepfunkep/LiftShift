@@ -3,9 +3,11 @@ import { subMonths, format, differenceInMonths, min } from 'date-fns';
 import { getDailySummaries, getExerciseStats, getIntensityEvolution, getTopExercisesOverTime, getPrsOverTime, HeatmapEntry } from '../analysis/core';
 import { getEffectiveNowFromWorkoutData, getSessionKey, isPlausibleDate } from '../date/dateUtils';
 import { isWarmupSet } from '../analysis/classification';
+import { isUnilateralSet } from '../analysis/classification/setClassification';
 import { getWeightUnit, WeightUnit } from '../storage/localStorage';
 import { convertWeight } from '../format/units';
-import { TrainingLevel, getTrainingLevel } from '../muscle/hypertrophy/muscleParams';
+import { calculateUnifiedScore, findCurrentCheckpointIndexByScore, CHECKPOINTS } from '../training/trainingTimeline';
+import type { TrainingLevel } from '../muscle/hypertrophy/muscleParams';
 
 export type ExperienceLevel = 'Newbie' | 'Beginner' | 'Early Intermediate' | 'Intermediate' | 'Advanced' | 'Elite';
 
@@ -16,13 +18,19 @@ export const calculateTrainingExperience = (sets: WorkoutSet[], now = new Date()
 
   const referenceNow = getEffectiveNowFromWorkoutData(sets, now);
 
-  // Find the earliest workout date
+  // Find the earliest workout date and count total sets
   const dates = sets
     .map(s => s.parsedDate)
     .filter((d): d is Date => !!d && isPlausibleDate(d));
   
   if (dates.length === 0) {
     return { monthsTraining: 0, level: 'Newbie', simplifiedLevel: 'beginner' };
+  }
+
+  let totalSets = 0;
+  for (const s of sets) {
+    if (isWarmupSet(s)) continue;
+    totalSets += isUnilateralSet(s) ? 0.5 : 1;
   }
 
   const earliestDate = min(dates);
@@ -42,7 +50,13 @@ export const calculateTrainingExperience = (sets: WorkoutSet[], now = new Date()
     level = 'Advanced'; // Note: Elite logic would need competition_level data
   }
 
-  return { monthsTraining, level, simplifiedLevel: getTrainingLevel(monthsTraining) };
+  // Use checkpoint index for simplified training level (sets + months based)
+  const unifiedScore = calculateUnifiedScore(totalSets, monthsTraining);
+  const checkpointIndex = findCurrentCheckpointIndexByScore(unifiedScore);
+  const currentCheckpoint = CHECKPOINTS[checkpointIndex];
+  const simplifiedLevel = currentCheckpoint.phase;
+
+  return { monthsTraining, level, simplifiedLevel };
 };
 
 export interface ExportPackage {
