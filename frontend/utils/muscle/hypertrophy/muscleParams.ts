@@ -22,9 +22,9 @@ export interface MuscleVolumeThresholds {
 export type TrainingLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export const VOLUME_THRESHOLDS_BY_LEVEL: Record<TrainingLevel, MuscleVolumeThresholds> = {
-  beginner: { mv: 3, mev: 6, mrv: 12, maxv: 15 },
-  intermediate: { mv: 5, mev: 10, mrv: 18, maxv: 22 },
-  advanced: { mv: 7, mev: 14, mrv: 24, maxv: 30 },
+  beginner: { mv: 4, mev: 8, mrv: 14, maxv: 18 },
+  intermediate: { mv: 6, mev: 12, mrv: 21, maxv: 25 },
+  advanced: { mv: 8, mev: 16, mrv: 26, maxv: 33 },
 };
 
 export function getTrainingLevel(monthsTraining: number): TrainingLevel {
