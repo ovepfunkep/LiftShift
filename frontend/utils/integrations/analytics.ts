@@ -5,11 +5,13 @@ type AnalyticsProperties = Record<string, unknown>;
 const INIT_FLAG = '__liftshift_analytics_initialized';
 
 type PosthogCapture = { event: string; properties?: AnalyticsProperties };
+type PosthogIdentify = { distinctId: string; properties?: Record<string, unknown> };
 
 let posthogClient: any = null;
 let posthogInitPromise: Promise<void> | null = null;
 let queuedPosthogCaptures: PosthogCapture[] = [];
 let queuedPosthogRegisters: AnalyticsProperties | null = null;
+let queuedPosthogIdentify: PosthogIdentify | null = null;
 
 const shouldEnableAnalytics = (): boolean => {
   const disabled = String(import.meta.env.VITE_ANALYTICS_DISABLED ?? '').trim();
@@ -114,6 +116,15 @@ const ensurePosthogInitialized = (): void => {
         } catch {
           // ignore
         }
+      }
+
+      if (queuedPosthogIdentify) {
+        try {
+          posthogClient.identify(queuedPosthogIdentify.distinctId, queuedPosthogIdentify.properties);
+        } catch {
+          // ignore
+        }
+        queuedPosthogIdentify = null;
       }
     })
     .catch(() => {
@@ -262,4 +273,39 @@ export const setContext = (properties: AnalyticsProperties): void => {
   }
 
   queuedPosthogRegisters = { ...(queuedPosthogRegisters || {}), ...properties };
+};
+
+export const identifyUser = (
+  distinctId: string,
+  properties?: Record<string, unknown>
+): void => {
+  if (!shouldEnableAnalytics()) return;
+  if (!distinctId || !distinctId.trim()) return;
+
+  const trimmedId = distinctId.trim();
+
+  ensurePosthogInitialized();
+
+  if (posthogClient?.identify) {
+    try {
+      posthogClient.identify(trimmedId, properties);
+    } catch {
+      // ignore
+    }
+  } else {
+    queuedPosthogIdentify = { distinctId: trimmedId, properties };
+  }
+};
+
+export const resetUser = (): void => {
+  if (!shouldEnableAnalytics()) return;
+
+  ensurePosthogInitialized();
+  if (posthogClient?.reset) {
+    try {
+      posthogClient.reset();
+    } catch {
+      // ignore
+    }
+  }
 };

@@ -5,6 +5,7 @@ export interface BackendSetsResponse<TSet> {
   meta?: {
     workouts?: number;
   };
+  username?: string;
 }
 
 const normalizeBaseUrl = (url: string): string => url.replace(/\/+$/g, '');

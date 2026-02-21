@@ -10,7 +10,7 @@ import { lyfatBackendGetSets } from '../../utils/api/lyfataBackend';
 import { identifyPersonalRecords } from '../../utils/analysis/core';
 import { hydrateBackendWorkoutSets } from '../../app/auth';
 import { getLyfatErrorMessage } from '../../app/ui';
-import { trackEvent } from '../../utils/integrations/analytics';
+import { trackEvent, identifyUser } from '../../utils/integrations/analytics';
 import type { AppAuthHandlersDeps } from './appAuthTypes';
 
 
@@ -35,6 +35,10 @@ export const runLyfatSyncSaved = (deps: AppAuthHandlersDeps): void => {
       deps.setDataSource('lyfta');
       saveSetupComplete(true);
       deps.setOnboarding(null);
+
+      if (resp.username) {
+        identifyUser(resp.username, { login_method: 'apiKey', platform: 'lyfta', username: resp.username });
+      }
     })
     .catch((err) => {
       trackEvent('lyfta_sync_error', { method: 'saved_api_key' });
@@ -66,6 +70,10 @@ export const runLyfatLogin = (deps: AppAuthHandlersDeps, apiKey: string): void =
       deps.setDataSource('lyfta');
       saveSetupComplete(true);
       deps.setOnboarding(null);
+
+      if (resp.username) {
+        identifyUser(resp.username, { login_method: 'apiKey', platform: 'lyfta', username: resp.username });
+      }
     })
     .catch((err) => {
       trackEvent('lyfta_sync_error', { method: 'api_key' });

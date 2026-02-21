@@ -1,4 +1,4 @@
-import { trackEvent } from '../../utils/integrations/analytics';
+import { trackEvent, resetUser } from '../../utils/integrations/analytics';
 import { computationCache } from '../../utils/storage/computationCache';
 import { browserCache } from '../../utils/storage/browserCache';
 import {
@@ -21,6 +21,7 @@ import {
 
 export const clearCacheAndRestart = (): void => {
   trackEvent('cache_clear', {});
+  resetUser();
   clearCSVData();
   clearHevyAuthToken();
   clearHevyProApiKey();

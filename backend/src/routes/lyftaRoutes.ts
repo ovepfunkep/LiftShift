@@ -53,7 +53,7 @@ export const createLyftaRouter = (opts: {
       const ipCountryCode = await getCountryFromIP(getClientIP(req));
       const countryInfo = ipCountryCode ? `[${ipCountryCode}] ` : '';
       console.log(`👤 ${username} ${countryInfo}✅ Lyfta sync successful: ${sets.length} sets (${formatDuration(durationMs)})`);
-      res.json({ sets, meta: { workouts: workouts.length } });
+      res.json({ sets, meta: { workouts: workouts.length }, username });
     } catch (err) {
       const status = (err as any).statusCode ?? 500;
       const message = (err as Error).message || 'Failed to fetch sets';

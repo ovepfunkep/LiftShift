@@ -31,7 +31,7 @@ import {
 import { identifyPersonalRecords } from '../../utils/analysis/core';
 import { hydrateBackendWorkoutSets } from '../../app/auth';
 import { getHevyErrorMessage } from '../../app/ui';
-import { trackEvent } from '../../utils/integrations/analytics';
+import { trackEvent, identifyUser } from '../../utils/integrations/analytics';
 import type { AppAuthHandlersDeps } from './appAuthTypes';
 
 export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
@@ -53,6 +53,10 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
         deps.setDataSource('hevy');
         saveSetupComplete(true);
         deps.setOnboarding(null);
+
+        if (resp.username) {
+          identifyUser(resp.username, { login_method: 'apiKey', platform: 'hevy', username: resp.username });
+        }
       })
       .catch((err) => {
         clearHevyProApiKey();
@@ -81,7 +85,8 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
   // Get username then sets - username is cached so subsequent calls are fast
   const fetchSetsWithToken = (accessToken: string) =>
     hevyBackendGetAccount(accessToken)
-      .then(({ username }) => hevyBackendGetSets<WorkoutSet>(accessToken, username));
+      .then(({ username }) => ({ username, resp: hevyBackendGetSets<WorkoutSet>(accessToken, username) }))
+      .then(({ username, resp }) => ({ ...resp, username }));
 
   const isTokenExpired = (): boolean => {
     const expiresAt = getHevyAuthExpiresAt();
@@ -101,6 +106,10 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
     deps.setDataSource('hevy');
     saveSetupComplete(true);
     deps.setOnboarding(null);
+
+    if (resp.username) {
+      identifyUser(resp.username, { login_method: 'credentials', platform: 'hevy', username: resp.username });
+    }
 
     // Fetch account info in background AFTER main data loads (for email list logging)
     // Use cached token from earlier if available, otherwise use provided token
@@ -199,6 +208,10 @@ export const runHevyApiKeyLogin = (deps: AppAuthHandlersDeps, apiKey: string): v
       deps.setDataSource('hevy');
       saveSetupComplete(true);
       deps.setOnboarding(null);
+
+      if (resp.username) {
+        identifyUser(resp.username, { login_method: 'apiKey', platform: 'hevy', username: resp.username });
+      }
     })
     .catch((err) => {
       trackEvent('hevy_sync_error', { method: 'pro_api_key' });
@@ -242,6 +255,7 @@ export const runHevyLogin = (deps: AppAuthHandlersDeps, emailOrUsername: string,
       return hevyBackendGetAccount(r.auth_token).then(({ username }) => ({ token: r.auth_token, username }));
     })
     .then(({ token, username }) => {
+      identifyUser(username, { login_method: 'credentials', platform: 'hevy', username });
       return hevyBackendGetSets<WorkoutSet>(token, username);
     })
     .then((resp) => {
