@@ -10,6 +10,8 @@ import FemaleFrontBodyMapMuscle from './muscles/FemaleFrontBodyMapMuscle';
 import FemaleBackBodyMapMuscle from './muscles/FemaleBackBodyMapMuscle';
 import FemaleFrontBodyMapGroup from './groups/FemaleFrontBodyMapGroup';
 import FemaleBackBodyMapGroup from './groups/FemaleBackBodyMapGroup';
+import type { BodyWarpParams } from '../../hooks/useBodyMapWarp';
+import type { BodyMapStrokeConfig } from '../../config/bodyMapWarp';
 
 export type BodyMapGender = 'male' | 'female';
 
@@ -27,6 +29,8 @@ interface BodyMapProps {
   compactFill?: boolean;
   interactive?: boolean;
   gender?: BodyMapGender;
+  warpParams?: BodyWarpParams;
+  stroke?: Partial<BodyMapStrokeConfig>;
 }
 
 // Hover and selection highlight colors (theme-driven)
@@ -60,6 +64,8 @@ export const BodyMap: React.FC<BodyMapProps> = ({
   compactFill = false,
   interactive = false,
   gender = 'male',
+  warpParams,
+  stroke,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hoveredMuscleRef = useRef<string | null>(null);
@@ -177,8 +183,8 @@ export const BodyMap: React.FC<BodyMapProps> = ({
       ref={containerRef}
       className={`flex justify-center items-center ${compact ? 'gap-0' : 'gap-4'} w-full ${compactFill ? 'h-full' : ''}`}
     >
-      <FrontSvg className={svgClass} />
-      <BackSvg className={svgClass} />
+      <FrontSvg className={svgClass} warpOverrides={warpParams} stroke={stroke} />
+      <BackSvg className={svgClass} warpOverrides={warpParams} stroke={stroke} />
     </div>
   );
 };

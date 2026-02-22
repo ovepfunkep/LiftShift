@@ -46,6 +46,7 @@ export const ExerciseOverviewCard: React.FC<ExerciseOverviewCardProps> = ({
           interactive
           gender={bodyMapGender}
           viewMode="headless"
+          stroke={{ width: 10 }}
           onPartHover={(muscleId) => onBodyMapHover(muscleId)}
         />
 

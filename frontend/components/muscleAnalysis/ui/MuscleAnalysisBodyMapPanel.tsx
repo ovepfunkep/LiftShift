@@ -174,6 +174,7 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
               onPartHover={handleMuscleHover}
               gender={bodyMapGender}
               viewMode="headless"
+              stroke={{ width: 5 }}
             />
           </div>
 

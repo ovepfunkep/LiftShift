@@ -41,6 +41,7 @@ export const HistoryExerciseHeatmap: React.FC<HistoryExerciseHeatmapProps> = ({
           interactive
           gender={bodyMapGender}
           viewMode="headless"
+          stroke={{ width: 10 }}
           onPartHover={(muscleId, ev) => {
             if (!muscleId || !ev) {
               setTooltip(null);

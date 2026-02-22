@@ -78,11 +78,7 @@ export const StrengthProgressionValueDot = (props: any) => {
   // Check for Gold PR
   const shouldShowPr = isGlobalMax && filteredPrTypes.length > 0;
   
-  // DEBUG: Log specifically for Lat Pulldown
-  if (payload.date?.includes('Dec') || payload.date?.includes('9')) {
-    console.log('LatPulldown:', { date: payload.date, valueKey, value, globalMaxValue, isGlobalMax, isPr: payload.isPr, weightPrTypes: payload.weightPrTypes, oneRmPrTypes: payload.oneRmPrTypes, prTypesToShow, filteredPrTypes, shouldShowPr });
-  }
-
+ 
   // Get Silver PR types
   const combinedSilverPrTypes: PrType[] = payload.silverPrTypes || [];
   let allSilverPrTypes: PrType[] = combinedSilverPrTypes;

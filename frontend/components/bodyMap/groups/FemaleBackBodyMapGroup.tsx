@@ -1,16 +1,42 @@
 import * as React from "react";
 import { FemaleBackBodyMapGroupPart1 } from "./femaleBack/FemaleBackBodyMapGroupPart1";
 import { FemaleBackBodyMapGroupPart2 } from "./femaleBack/FemaleBackBodyMapGroupPart2";
-const SVGComponent = (props) => (
-  <svg
-    viewBox="0 0 660.46 1206.46"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-80 col-span-2"
-    {...props}
-  >
-    <FemaleBackBodyMapGroupPart1 />
-    <FemaleBackBodyMapGroupPart2 />
-  </svg>
-);
+import { useBodyMapWarp, BodyWarpParams } from "../../../hooks/useBodyMapWarp";
+import { BodyMapStrokeConfig } from "../../../config/bodyMapWarp";
+
+const BASE_VIEWBOX_WIDTH = 660.46;
+const BASE_VIEWBOX_HEIGHT = 1206.46;
+
+interface Props extends React.SVGProps<SVGSVGElement> {
+  warpOverrides?: BodyWarpParams;
+  stroke?: Partial<BodyMapStrokeConfig>;
+}
+
+const SVGComponent = React.forwardRef<SVGSVGElement, Props>(({ warpOverrides, stroke, ...props }, forwardedRef) => {
+  const { ref, heightScale, ready } = useBodyMapWarp({ gender: 'female', overrides: warpOverrides, stroke });
+
+  React.useImperativeHandle(forwardedRef, () => ref.current!);
+
+  const scaledHeight = BASE_VIEWBOX_HEIGHT * heightScale;
+  const yOffset = (scaledHeight - BASE_VIEWBOX_HEIGHT) / 2;
+  const viewBox = `0 ${-yOffset} ${BASE_VIEWBOX_WIDTH} ${scaledHeight}`;
+
+  return (
+    <svg
+      ref={ref}
+      viewBox={viewBox}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-80 col-span-2"
+      style={{ visibility: ready ? 'visible' : 'hidden' }}
+      {...props}
+    >
+      <FemaleBackBodyMapGroupPart1 />
+      <FemaleBackBodyMapGroupPart2 />
+    </svg>
+  );
+});
+
+SVGComponent.displayName = "FemaleBackBodyMapGroup";
+
 export default SVGComponent;
