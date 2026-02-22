@@ -117,6 +117,9 @@ export const lyfatGetAllWorkouts = async (apiKey: string): Promise<LyfatGetWorko
 
   while (hasMore) {
     const response = await lyfatGetWorkouts(apiKey, { limit: 100, page });
+    if (!Array.isArray(response.workouts)) {
+      throw new Error('Invalid response from Lyfta API');
+    }
     allWorkouts.push(...response.workouts);
 
     if (page >= response.total_pages) {
@@ -161,6 +164,9 @@ export const lyfatGetAllWorkoutSummaries = async (apiKey: string): Promise<Lyfat
 
   while (hasMore) {
     const response = await lyfatGetWorkoutSummaries(apiKey, { limit: 1000, page });
+    if (!Array.isArray(response.workouts)) {
+      throw new Error('Invalid response from Lyfta API');
+    }
     allSummaries.push(...response.workouts);
 
     if (page >= response.total_pages) {
