@@ -64,6 +64,9 @@ export const parseWorkoutCSV = (csvContent: string, options: ParseOptions): Pars
     const timeA = a.parsedDate?.getTime() ?? 0;
     const timeB = b.parsedDate?.getTime() ?? 0;
     if (timeB !== timeA) return timeB - timeA;
+    const exIdxA = a.exercise_index ?? 0;
+    const exIdxB = b.exercise_index ?? 0;
+    if (exIdxA !== exIdxB) return exIdxA - exIdxB;
     return a.set_index - b.set_index;
   });
 
@@ -238,6 +241,9 @@ export const parseWorkoutCSVAsync = async (csvContent: string, options: ParseOpt
         const timeA = a.parsedDate?.getTime() ?? 0;
         const timeB = b.parsedDate?.getTime() ?? 0;
         if (timeB !== timeA) return timeB - timeA;
+        const exIdxA = a.exercise_index ?? 0;
+        const exIdxB = b.exercise_index ?? 0;
+        if (exIdxA !== exIdxB) return exIdxA - exIdxB;
         return a.set_index - b.set_index;
       });
 

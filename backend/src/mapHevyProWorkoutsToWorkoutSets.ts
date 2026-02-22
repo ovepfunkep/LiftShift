@@ -28,10 +28,13 @@ export const mapHevyProWorkoutsToWorkoutSets = (workouts: HevyProWorkout[]): Wor
     const end_time = formatIsoDate(w.end_time);
     const description = String(w.description ?? '');
 
-    for (const ex of w.exercises ?? []) {
+    const exercises = w.exercises ?? [];
+    for (let exerciseIdx = 0; exerciseIdx < exercises.length; exerciseIdx++) {
+      const ex = exercises[exerciseIdx];
       const exercise_title = String(ex.title ?? '').trim();
       const exercise_notes = String(ex.notes ?? '');
       const superset_id = String(ex.supersets_id ?? '');
+      const exercise_index = exerciseIdx;
 
       for (const s of ex.sets ?? []) {
         const distanceMeters = s.distance_meters == null ? 0 : toNumber(s.distance_meters, 0);
@@ -41,6 +44,7 @@ export const mapHevyProWorkoutsToWorkoutSets = (workouts: HevyProWorkout[]): Wor
           end_time,
           description,
           exercise_title,
+          exercise_index,
           superset_id,
           exercise_notes,
           set_index: toNumber(s.index, 0),

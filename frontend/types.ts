@@ -6,6 +6,7 @@ export interface WorkoutSet {
   end_time: string;
   description: string;
   exercise_title: string;
+  exercise_index?: number;
   superset_id: string;
   exercise_notes: string;
   set_index: number;

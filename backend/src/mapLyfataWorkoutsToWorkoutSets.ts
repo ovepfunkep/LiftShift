@@ -71,7 +71,7 @@ export const mapLyfataWorkoutsToWorkoutSets = (
     
     const description = '';
 
-    for (const ex of w.exercises ?? []) {
+    for (const [exerciseIndex, ex] of (w.exercises ?? []).entries()) {
       const exercise_title = String(ex.excercise_name ?? '').trim();
       const exercise_notes = '';
       const superset_id = '';
@@ -83,6 +83,7 @@ export const mapLyfataWorkoutsToWorkoutSets = (
           end_time,
           description,
           exercise_title,
+          exercise_index: exerciseIndex,
           superset_id,
           exercise_notes,
           set_index: 0, // Lyfta doesn't provide index

@@ -29,6 +29,7 @@ export interface HevyWorkout {
 
 export interface HevyWorkoutExercise {
   id: string;
+  index?: number;
   title?: string;
   notes?: string;
   superset_id?: string | null;
@@ -84,6 +85,7 @@ export interface WorkoutSetDTO {
   end_time: string;
   description: string;
   exercise_title: string;
+  exercise_index: number;
   superset_id: string;
   exercise_notes: string;
   set_index: number;

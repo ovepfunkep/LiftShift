@@ -240,7 +240,12 @@ const formatSetsAsText = (
     });
 
   for (const entry of entries) {
-    const sessSets = entry.sets.sort((a, b) => (a.set_index || 0) - (b.set_index || 0));
+    const sessSets = entry.sets.sort((a, b) => {
+      const exIdxA = a.exercise_index ?? 0;
+      const exIdxB = b.exercise_index ?? 0;
+      if (exIdxA !== exIdxB) return exIdxA - exIdxB;
+      return (a.set_index || 0) - (b.set_index || 0);
+    });
     const date = sessSets[0]?.parsedDate ? format(sessSets[0].parsedDate!, 'yyyy-MM-dd') : 'unknown date';
     const title = sessSets[0]?.title || '';
     parts.push(`Date: ${date}`);

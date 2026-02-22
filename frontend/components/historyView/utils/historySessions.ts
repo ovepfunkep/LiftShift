@@ -31,6 +31,7 @@ export const buildHistorySessions = (data: WorkoutSet[]): Session[] => {
       const groupedExercises: GroupedExercise[] = [];
       const setsByExercise = new Map<string, WorkoutSet[]>();
       const exerciseOrder: string[] = [];
+      const exerciseIndexMap = new Map<string, number>();
 
       let totalVolume = 0;
       let totalPRs = 0;
@@ -40,25 +41,29 @@ export const buildHistorySessions = (data: WorkoutSet[]): Session[] => {
         if (!setsByExercise.has(exerciseName)) {
           setsByExercise.set(exerciseName, []);
           exerciseOrder.push(exerciseName);
+          exerciseIndexMap.set(exerciseName, set.exercise_index ?? exerciseOrder.length - 1);
         }
         setsByExercise.get(exerciseName)!.push(set);
 
         if (!isWarmupSet(set)) {
           totalVolume += (set.weight_kg || 0) * (set.reps || 0);
-          // Count each PR type as a separate PR
           if (set.prTypes && set.prTypes.length > 0) {
             totalPRs += set.prTypes.length;
           } else if (set.isPr) {
-            // Fallback for backward compatibility
             totalPRs += 1;
           }
         }
       });
 
-      // Count total working sets
       const totalSets = countSets(sets);
 
-      for (const exerciseName of exerciseOrder) {
+      const sortedExerciseOrder = exerciseOrder.sort((a, b) => {
+        const idxA = exerciseIndexMap.get(a) ?? 0;
+        const idxB = exerciseIndexMap.get(b) ?? 0;
+        return idxA - idxB;
+      });
+
+      for (const exerciseName of sortedExerciseOrder) {
         const exerciseSets = setsByExercise.get(exerciseName) || [];
         const sortedSets = exerciseSets
           .map((s, i) => ({ s, i }))

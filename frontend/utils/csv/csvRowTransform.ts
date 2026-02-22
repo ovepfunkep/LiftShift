@@ -168,9 +168,20 @@ export const calculateSetIndices = (sets: WorkoutSet[]): void => {
 
   for (const [, sessionSets] of sessions) {
     const exerciseCounters = new Map<string, number>();
+    const exerciseIndexMap = new Map<string, number>();
+    let nextExerciseIndex = 0;
+    
     for (const set of sessionSets) {
-      const count = (exerciseCounters.get(set.exercise_title) || 0) + 1;
-      exerciseCounters.set(set.exercise_title, count);
+      const exerciseName = set.exercise_title;
+      
+      if (!exerciseIndexMap.has(exerciseName)) {
+        exerciseIndexMap.set(exerciseName, nextExerciseIndex);
+        nextExerciseIndex++;
+      }
+      set.exercise_index = exerciseIndexMap.get(exerciseName);
+      
+      const count = (exerciseCounters.get(exerciseName) || 0) + 1;
+      exerciseCounters.set(exerciseName, count);
       set.set_index = count;
     }
   }
