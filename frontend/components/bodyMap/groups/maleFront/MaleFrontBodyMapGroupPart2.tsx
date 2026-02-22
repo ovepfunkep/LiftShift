@@ -6,7 +6,7 @@ export const MaleFrontBodyMapGroupPart2: React.FC = () => (
       .body-map__model path,
       .body-map__model line {
         stroke: #484a68 !important;
-        stroke-width: 2.2px !important;
+        stroke-width: 1.5px !important;
         stroke-linecap: round !important;
         stroke-linejoin: round !important;
         vector-effect: non-scaling-stroke;
