@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { getVolumeColor, getExerciseMuscleColor, SVG_MUSCLE_GROUPS, CSV_TO_SVG_MUSCLE_MAP } from '../../utils/muscle/mapping';
 import { INTERACTIVE_MUSCLE_IDS } from '../../utils/muscle/mapping';
 import type { MuscleVolumeThresholds } from '../../utils/muscle/hypertrophy/muscleParams';
@@ -150,7 +150,7 @@ export const BodyMap: React.FC<BodyMapProps> = ({
     onPartHover?.(null, e);
   }, [onPartHover, applyColors, hoveredMuscleIdsOverride]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     applyColors(hoveredMuscleRef.current);
     const container = containerRef.current;
     if (!container) return;
