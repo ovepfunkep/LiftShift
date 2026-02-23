@@ -25,6 +25,7 @@ interface AppTabContentProps {
 
   dailySummaries: DailySummary[];
   exerciseStats: ExerciseStats[];
+  parsedData: WorkoutSet[];
   filteredData: WorkoutSet[];
   filterCacheKey: string;
 
@@ -61,6 +62,7 @@ export const AppTabContent: React.FC<AppTabContentProps> = ({
   hasActiveCalendarFilter,
   dailySummaries,
   exerciseStats,
+  parsedData,
   filteredData,
   filterCacheKey,
   filtersSlot,
@@ -90,7 +92,8 @@ export const AppTabContent: React.FC<AppTabContentProps> = ({
           <Dashboard
             dailyData={dailySummaries}
             exerciseStats={exerciseStats}
-            fullData={filteredData}
+            parsedData={parsedData}
+            filteredData={filteredData}
             filterCacheKey={filterCacheKey}
             filtersSlot={filtersSlot}
             stickyHeader={hasActiveCalendarFilter}
@@ -136,6 +139,7 @@ export const AppTabContent: React.FC<AppTabContentProps> = ({
         {activeTab === Tab.MUSCLE_ANALYSIS && (
           <MuscleAnalysis
             data={filteredData}
+            lifetimeData={parsedData}
             filterCacheKey={filterCacheKey}
             filtersSlot={filtersSlot}
             onExerciseClick={onExerciseClick}

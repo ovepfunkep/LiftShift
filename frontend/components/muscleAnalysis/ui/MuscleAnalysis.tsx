@@ -19,6 +19,7 @@ import { prefetchHistoryData } from '../../../utils/prefetch/prefetchStrategies'
 
 interface MuscleAnalysisProps {
   data: WorkoutSet[];
+  lifetimeData: WorkoutSet[];
   filterCacheKey: string;
   filtersSlot?: React.ReactNode;
   onExerciseClick?: (exerciseName: string) => void;
@@ -32,6 +33,7 @@ interface MuscleAnalysisProps {
 
 export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
   data,
+  lifetimeData,
   filterCacheKey,
   filtersSlot,
   onExerciseClick,
@@ -72,6 +74,7 @@ export const MuscleAnalysis: React.FC<MuscleAnalysisProps> = ({
     lifetimeHeadlessVolumes,
   } = useMuscleVolumeData({
     data,
+    lifetimeData,
     weeklySetsWindow,
     now,
   });

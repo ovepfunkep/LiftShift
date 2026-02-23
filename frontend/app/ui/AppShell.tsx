@@ -37,6 +37,7 @@ interface AppShellProps {
   hasActiveFilters: boolean;
   dailySummaries: DailySummary[];
   exerciseStats: ExerciseStats[];
+  parsedData: WorkoutSet[];
   filteredData: WorkoutSet[];
   filterCacheKey: string;
   filtersSlot: React.ReactNode;
@@ -87,6 +88,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   hasActiveFilters,
   dailySummaries,
   exerciseStats,
+  parsedData,
   filteredData,
   filterCacheKey,
   filtersSlot,
@@ -149,6 +151,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         hasActiveCalendarFilter={hasActiveFilters}
         dailySummaries={dailySummaries}
         exerciseStats={exerciseStats}
+        parsedData={parsedData}
         filteredData={filteredData}
         filterCacheKey={filterCacheKey}
         filtersSlot={filtersSlot}

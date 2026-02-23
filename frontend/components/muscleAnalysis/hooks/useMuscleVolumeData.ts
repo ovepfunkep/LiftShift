@@ -18,6 +18,7 @@ import { WeeklySetsWindow } from '../../../utils/muscle/analytics';
 
 export interface UseMuscleVolumeDataProps {
   data: WorkoutSet[];
+  lifetimeData: WorkoutSet[];
   weeklySetsWindow: WeeklySetsWindow;
   now?: Date;
 }
@@ -37,6 +38,7 @@ export interface UseMuscleVolumeDataReturn {
 
 export function useMuscleVolumeData({
   data,
+  lifetimeData,
   weeklySetsWindow,
   now,
 }: UseMuscleVolumeDataProps): UseMuscleVolumeDataReturn {
@@ -106,22 +108,20 @@ export function useMuscleVolumeData({
     calculateMuscleVolume(processedData, exerciseMuscleData).then(setMuscleVolume);
   }, [data, exerciseMuscleData, windowStart]);
 
-  // Calculate lifetime (all-time) headless muscle volumes for achievement tracking
   useEffect(() => {
-    if (exerciseMuscleData.size === 0 || data.length === 0) {
+    if (exerciseMuscleData.size === 0 || lifetimeData.length === 0) {
       setLifetimeHeadlessVolumes(new Map());
       return;
     }
 
-    calculateMuscleVolume(data, exerciseMuscleData).then((allTimeVolume) => {
-      // Convert detailed SVG volumes → headless muscle totals (sum, not max)
+    calculateMuscleVolume(lifetimeData, exerciseMuscleData).then((allTimeVolume) => {
       const detailedSets = new Map<string, number>();
       allTimeVolume.forEach((entry, svgId) => {
         detailedSets.set(svgId, entry.sets);
       });
       setLifetimeHeadlessVolumes(toHeadlessVolumeMapSum(detailedSets));
     });
-  }, [data, exerciseMuscleData]);
+  }, [lifetimeData, exerciseMuscleData]);
 
   return {
     exerciseMuscleData,

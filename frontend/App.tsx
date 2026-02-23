@@ -321,6 +321,7 @@ const App: React.FC = () => {
         hasActiveFilters={hasActiveCalendarFilter}
         dailySummaries={dailySummaries}
         exerciseStats={exerciseStats}
+        parsedData={parsedData}
         filteredData={filteredData}
         filterCacheKey={filterCacheKey}
         filtersSlot={desktopFilterControls}

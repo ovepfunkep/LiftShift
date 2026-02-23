@@ -26,7 +26,8 @@ import { useTrainingTimeline } from '../../../hooks/app/useTrainingTimeline';
 interface DashboardProps {
   dailyData: DailySummary[];
   exerciseStats: ExerciseStats[];
-  fullData: WorkoutSet[];
+  parsedData: WorkoutSet[];
+  filteredData: WorkoutSet[];
   filterCacheKey: string;
   onDayClick?: (date: Date) => void;
   onMuscleClick?: (
@@ -44,7 +45,8 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({
   dailyData,
   exerciseStats,
-  fullData,
+  parsedData,
+  filteredData,
   filterCacheKey,
   onDayClick,
   onMuscleClick,
@@ -59,22 +61,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [aiAnalyzeOpen, setAiAnalyzeOpen] = useState(false);
   const { mode: themeMode } = useTheme();
 
-  const effectiveNow = useMemo(() => now ?? getEffectiveNowFromWorkoutData(fullData), [now, fullData]);
+  const effectiveNow = useMemo(() => now ?? getEffectiveNowFromWorkoutData(parsedData), [now, parsedData]);
 
-  // Calculate user's training level for personalized volume thresholds
-  const { trainingLevel } = useTrainingLevel(fullData, effectiveNow);
+  const { trainingLevel } = useTrainingLevel(parsedData, effectiveNow);
 
-  // Calculate training timeline progress (hybrid sessions + months)
-  const timelineProgress = useTrainingTimeline(fullData, effectiveNow);
+  const timelineProgress = useTrainingTimeline(parsedData, effectiveNow);
 
   const spanDays = useMemo(() => {
-    if (!fullData.length) return 0;
-    const dates = fullData.map((s) => s.parsedDate?.getTime() || 0).filter((t) => t > 0);
+    if (!filteredData.length) return 0;
+    const dates = filteredData.map((s) => s.parsedDate?.getTime() || 0).filter((t) => t > 0);
     if (dates.length === 0) return 0;
     const min = Math.min(...dates);
     const max = Math.max(...dates);
     return Math.max(1, Math.round((max - min) / (1000 * 60 * 60 * 24)) + 1);
-  }, [fullData]);
+  }, [filteredData]);
 
   const smartMode = useMemo(() => getSmartFilterMode(spanDays), [spanDays]);
 
@@ -84,14 +84,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const totalWorkouts = useMemo(() => {
     const sessions = new Set<string>();
-    for (const s of fullData) {
+    for (const s of filteredData) {
       if (isWarmupSet(s)) continue;
       const key = getSessionKey(s);
       if (!key) continue;
       sessions.add(key);
     }
     return sessions.size;
-  }, [fullData]);
+  }, [filteredData]);
 
   const [chartOverrides, setChartOverrides] = useState<Record<string, TimeFilterMode | null>>({
     volumeVsDuration: null,
@@ -151,36 +151,35 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const totalSets = useMemo(() => {
     let count = 0;
-    for (const s of fullData) {
+    for (const s of filteredData) {
       if (isWarmupSet(s)) continue;
       count += 1;
     }
     return count;
-  }, [fullData]);
+  }, [filteredData]);
 
   const dashboardInsights = useMemo(() => {
     const cacheKey = dashboardCacheKeys.dashboardInsights(filterCacheKey);
     return computationCache.getOrCompute(
       cacheKey,
-      fullData,
-      () => calculateDashboardInsights(fullData, dailyData, effectiveNow),
+      filteredData,
+      () => calculateDashboardInsights(filteredData, dailyData, effectiveNow),
       { ttl: 10 * 60 * 1000 }
     );
-  }, [fullData, dailyData, effectiveNow, filterCacheKey]);
+  }, [filteredData, dailyData, effectiveNow, filterCacheKey]);
 
-  // Prefetch Exercise view data after 3 seconds on Dashboard
   useEffect(() => {
-    if (fullData.length === 0) return;
+    if (filteredData.length === 0) return;
     
     const timer = setTimeout(() => {
-      prefetchExerciseData(filterCacheKey, fullData);
+      prefetchExerciseData(filterCacheKey, filteredData);
     }, 3000);
     
     return () => clearTimeout(timer);
-  }, [filterCacheKey, fullData]);
+  }, [filterCacheKey, filteredData]);
 
   const { activePlateauExercises } = useDashboardPlateaus({
-    fullData,
+    fullData: filteredData,
     exerciseStats,
     weightUnit,
     effectiveNow,
@@ -188,7 +187,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
 
   const { prsData, prTrendDelta, prTrendDelta7d } = useDashboardPrTrend({
-    fullData,
+    fullData: filteredData,
     rangeMode: chartModes.prTrend,
     allAggregationMode,
     effectiveNow,
@@ -197,7 +196,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
 
   const { intensityData, intensityInsight } = useDashboardIntensityEvolution({
-    fullData,
+    fullData: filteredData,
     rangeMode: chartModes.intensityEvo,
     allAggregationMode,
     effectiveNow,
@@ -217,7 +216,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const { weekShapeData, weeklyRhythmInsight } = useWeeklyRhythm(dailyData);
 
   const { topExercisesBarData, topExercisesOverTimeData, topExerciseNames, topExercisesInsight } = useDashboardTopExercises({
-    fullData,
+    fullData: filteredData,
     exerciseStats,
     topExerciseMode,
     allAggregationMode,
@@ -226,7 +225,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
 
   const { trendData, trendKeys, muscleTrendInsight, muscleVsLabel } = useDashboardMuscleTrend({
-    fullData,
+    fullData: filteredData,
     assetsMap,
     assetsLowerMap,
     muscleGrouping,
@@ -237,7 +236,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const { weeklySetsDashboard } = useDashboardWeeklySetsDashboard({
     assetsMap,
-    fullData,
+    fullData: filteredData,
     effectiveNow,
     muscleCompQuick,
     compositionGrouping,
@@ -315,7 +314,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       tooltipStyle={TooltipStyle as any}
       aiAnalyzeOpen={aiAnalyzeOpen}
       setAiAnalyzeOpen={setAiAnalyzeOpen}
-      fullData={fullData}
+      fullData={filteredData}
       exerciseStats={exerciseStats}
       themeMode={themeMode}
       animationKeyframes={ANIMATION_KEYFRAMES}
