@@ -122,7 +122,7 @@ export const MuscleAnalysisExerciseList: React.FC<MuscleAnalysisExerciseListProp
                         compactFill
                         viewMode="headless"
                         gender={bodyMapGender}
-                        stroke={{ width: 12 }}
+                        stroke={{ width: 5, color: '#484a68', opacity: 0.8 }}
                       />
                     </div>
                   </div>

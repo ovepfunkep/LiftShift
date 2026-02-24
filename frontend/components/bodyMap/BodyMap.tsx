@@ -6,6 +6,8 @@ import MaleFrontBodyMapMuscle from './muscles/MaleFrontBodyMapMuscle';
 import MaleBackBodyMapMuscle from './muscles/MaleBackBodyMapMuscle';
 import MaleFrontBodyMapGroup from './groups/MaleFrontBodyMapGroup';
 import MaleBackBodyMapGroup from './groups/MaleBackBodyMapGroup';
+import DemoFrontBodyMapGroup from './demo/DemoFrontBodyMapGroup';
+import DemoBackBodyMapGroup from './demo/DemoBackBodyMapGroup';
 import FemaleFrontBodyMapMuscle from './muscles/FemaleFrontBodyMapMuscle';
 import FemaleBackBodyMapMuscle from './muscles/FemaleBackBodyMapMuscle';
 import FemaleFrontBodyMapGroup from './groups/FemaleFrontBodyMapGroup';
@@ -14,6 +16,7 @@ import type { BodyWarpParams } from '../../hooks/useBodyMapWarp';
 import type { BodyMapStrokeConfig } from '../../config/bodyMapWarp';
 
 export type BodyMapGender = 'male' | 'female';
+export type BodyMapVariant = 'original' | 'demo';
 
 interface BodyMapProps {
   onPartClick: (muscleGroup: string) => void;
@@ -29,6 +32,7 @@ interface BodyMapProps {
   compactFill?: boolean;
   interactive?: boolean;
   gender?: BodyMapGender;
+  variant?: BodyMapVariant;
   warpParams?: BodyWarpParams;
   stroke?: Partial<BodyMapStrokeConfig>;
 }
@@ -64,8 +68,9 @@ export const BodyMap: React.FC<BodyMapProps> = ({
   compactFill = false,
   interactive = false,
   gender = 'male',
-  warpParams,
-  stroke,
+  variant = 'demo',
+  warpParams = undefined,
+  stroke = undefined,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hoveredMuscleRef = useRef<string | null>(null);
@@ -90,24 +95,18 @@ export const BodyMap: React.FC<BodyMapProps> = ({
         
         el.querySelectorAll('path').forEach(path => {
           path.style.transition = 'all 0.15s ease';
-          const baseStrokeWidth = compact ? 0.6 : 1;
-          path.style.stroke = 'rgb(var(--outline-rgb) / 1)';
-          path.style.strokeWidth = String(baseStrokeWidth);
-          path.style.strokeOpacity = compact ? '0.55' : '0.7';
+          // Stroke is handled by useBodyMapWarp hook - only set fill here
+          // Volume-based color
+          path.style.fill = color;
+          path.style.filter = '';
           
           if (isSelected) {
             // Selected state - should be clearly distinguishable from hover.
             path.style.fill = SELECTION_HIGHLIGHT;
-            path.style.stroke = SELECTION_HIGHLIGHT;
-            path.style.strokeWidth = String(baseStrokeWidth + (compact ? 0.35 : 0.8));
-            path.style.strokeOpacity = '1';
             path.style.filter = 'brightness(1.12)';
           } else if (isHovered) {
             // Hover state - uses a distinct (non-palette) hover color.
             path.style.fill = HOVER_HIGHLIGHT;
-            path.style.stroke = HOVER_HIGHLIGHT;
-            path.style.strokeWidth = String(baseStrokeWidth + (compact ? 0.2 : 0.45));
-            path.style.strokeOpacity = compact ? '0.9' : '0.95';
             path.style.filter = 'brightness(1.08)';
           } else {
             // Default state - volume-based color
@@ -170,13 +169,19 @@ export const BodyMap: React.FC<BodyMapProps> = ({
     ? (compactFill ? 'h-full w-auto' : 'h-28 w-auto') 
     : 'h-[45vh] sm:h-[50vh] md:h-[55vh] lg:h-[60vh] xl:h-[65vh] 2xl:max-h-[55vh] w-auto max-h-[500px]';
 
-  const FrontSvg = gender === 'female' 
-    ? FemaleFrontBodyMapGroup
-    : MaleFrontBodyMapGroup;
+  const isDemoVariant = variant === 'demo' && gender === 'male';
   
-  const BackSvg = gender === 'female'
-    ? FemaleBackBodyMapGroup
-    : MaleBackBodyMapGroup;
+  const FrontSvg = isDemoVariant
+    ? DemoFrontBodyMapGroup
+    : (gender === 'female' 
+      ? FemaleFrontBodyMapGroup
+      : MaleFrontBodyMapGroup);
+  
+  const BackSvg = isDemoVariant
+    ? DemoBackBodyMapGroup
+    : (gender === 'female'
+      ? FemaleBackBodyMapGroup
+      : MaleBackBodyMapGroup);
 
   return (
     <div 

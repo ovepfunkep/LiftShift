@@ -34,7 +34,7 @@ export const CSVImportBodyTypeSelector: React.FC<CSVImportBodyTypeSelectorProps>
           </div>
         )}
         <div className="h-28 sm:h-32 flex items-center justify-center overflow-hidden">
-          <MaleFrontBodyMapGroup className="h-full w-auto opacity-70" stroke={{ width: 15 }} />
+          <MaleFrontBodyMapGroup className="h-full w-auto opacity-70" stroke={{ width: 5, color: '#484a68', opacity: 0.8}} />
         </div>
         <span
           className={`mt-1 font-semibold text-xs ${

@@ -300,7 +300,7 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
                 background: 'transparent',
                 color: legendColors.textAtMrv
               }}>
-                <span className="drop-shadow-md">Amplifying</span>
+                <span className="drop-shadow-sm" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Amplifying</span>
               </div>
               {legendColors.showOverdrive ? (
                 <>

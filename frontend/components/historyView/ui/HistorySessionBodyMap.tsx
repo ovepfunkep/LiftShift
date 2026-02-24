@@ -26,7 +26,7 @@ export const HistorySessionBodyMap: React.FC<HistorySessionBodyMapProps> = ({
     interactive
     gender={bodyMapGender}
     viewMode="headless"
-    stroke={{ width: 10 }}
+    stroke={{ width: 3, color: '#484a68', opacity: 0.8 }}
     onPartHover={(muscleId, ev) => {
       if (!muscleId || !ev) {
         setTooltip(null);

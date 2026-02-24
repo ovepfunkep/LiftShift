@@ -135,9 +135,10 @@ export const useBodyMapWarp = (options?: UseBodyMapWarpOptions): UseBodyMapWarpR
   const stroke: BodyMapStrokeConfig = useMemo(() => ({
     color: strokeOverride?.color ?? BODYMAP_STROKE.color,
     width: strokeOverride?.width ?? BODYMAP_STROKE.width,
+    opacity: strokeOverride?.opacity ?? BODYMAP_STROKE.opacity,
     linecap: strokeOverride?.linecap ?? BODYMAP_STROKE.linecap,
     linejoin: strokeOverride?.linejoin ?? BODYMAP_STROKE.linejoin,
-  }), [strokeOverride?.color, strokeOverride?.width, strokeOverride?.linecap, strokeOverride?.linejoin]);
+  }), [strokeOverride?.color, strokeOverride?.width, strokeOverride?.opacity, strokeOverride?.linecap, strokeOverride?.linejoin]);
 
   const resolvedParams: ResolvedBodyWarpParams = useMemo(() => {
     const base = BODYMAP_WARP_CONFIG[gender];
@@ -224,6 +225,7 @@ export const useBodyMapWarp = (options?: UseBodyMapWarpOptions): UseBodyMapWarpR
     svg.querySelectorAll('path, line').forEach((el) => {
       el.setAttribute('stroke', stroke.color);
       el.setAttribute('stroke-width', String(stroke.width));
+      el.setAttribute('stroke-opacity', String(stroke.opacity));
       el.setAttribute('stroke-linecap', stroke.linecap);
       el.setAttribute('stroke-linejoin', stroke.linejoin);
     });

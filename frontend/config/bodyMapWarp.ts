@@ -47,6 +47,7 @@
 export interface BodyMapStrokeConfig {
   color: string;       // Stroke color (CSS color value)
   width: number;       // Stroke width in pixels
+  opacity: number;     // Stroke opacity for zero-volume muscles (0-1)
   linecap: 'butt' | 'round' | 'square';
   linejoin: 'miter' | 'round' | 'bevel';
 }
@@ -56,7 +57,8 @@ export interface BodyMapStrokeConfig {
  */
 export const BODYMAP_STROKE: BodyMapStrokeConfig = {
   color: '#484a68',
-  width: 5,
+  width: 1,
+  opacity: 0.5,
   linecap: 'round',
   linejoin: 'round',
 };

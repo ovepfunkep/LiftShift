@@ -173,8 +173,9 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
               volumeThresholds={volumeThresholds}
               onPartHover={handleMuscleHover}
               gender={bodyMapGender}
+              variant="demo"
               viewMode="headless"
-              stroke={{ width: 5 }}
+              stroke={{ width: 2, color: '#484a68', opacity: 0.5 }}
             />
           </div>
 

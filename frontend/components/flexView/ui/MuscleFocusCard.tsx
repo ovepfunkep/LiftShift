@@ -140,7 +140,7 @@ export const MuscleFocusCard: React.FC<{
                 compactFill
                 viewMode="headless"
                 gender={gender}
-                stroke={{ width: 10 }}
+                stroke={{ width: 5, color: '#484a68', opacity: 0.8}}
               />
             </div>
           </div>
