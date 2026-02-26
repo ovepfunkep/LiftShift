@@ -84,37 +84,45 @@ function interpolateColor(color1: string, color2: string, factor: number): strin
 export function getVolumeZoneColor(sets: number, thresholds?: MuscleVolumeThresholds, maxSets?: number): string {
   const { mv, mev, mrv, maxv } = thresholds ?? DEFAULT_VOLUME_THRESHOLDS;
   
-  if (sets === 0) return '#ffffff';
+  if (sets === 0) return '#ffffffbb';
   
   // Wide green spectrum: white → light green → green → dark green
   const effectiveMax = maxSets ?? maxv;
   
-  if (sets <= maxv) {
-    // Create more granular green stops for better differentiation
-    // 0-25%: white → very light green
-    // 25-50%: very light green → light green  
-    // 50-75%: light green → green
-    // 75-100%: green → dark green
+if (sets <= maxv) {
     const progress = sets / maxv;
-    
-    if (progress < 0.25) {
-      return interpolateColor('#ffffff', '#dcfce7', progress / 0.25);
-    } else if (progress < 0.5) {
-      return interpolateColor('#dcfce7', '#86efac', (progress - 0.25) / 0.25);
+
+    if (progress < 0.15) {
+        // 0–15%: white → light green (slightly lighter than #22c55e)
+        return interpolateColor('#deebe3', '#4ade80', progress / 0.15);
+    } else if (progress < 0.3) {
+        // 15–30%: light green → base green
+        return interpolateColor('#4ade80', '#22c55e', (progress - 0.15) / 0.15);
+    } else if (progress < 0.45) {
+        // 30–45%: base → medium-dark
+        return interpolateColor('#22c55e', '#16a34a', (progress - 0.3) / 0.15);
+    } else if (progress < 0.6) {
+        // 45–60%: medium-dark → deep green
+        return interpolateColor('#16a34a', '#15803d', (progress - 0.45) / 0.15);
     } else if (progress < 0.75) {
-      return interpolateColor('#86efac', '#22c55e', (progress - 0.5) / 0.25);
+        // 60–75%: deep → forest
+        return interpolateColor('#15803d', '#166534', (progress - 0.6) / 0.15);
+    } else if (progress < 0.9) {
+        // 75–90%: forest → dark forest
+        return interpolateColor('#166534', '#14532d', (progress - 0.75) / 0.15);
     } else {
-      return interpolateColor('#22c55e', '#15803d', (progress - 0.75) / 0.25);
+        // 90–100%: dark forest → very dark (#0f3d22)
+        return interpolateColor('#14532d', '#0f3d22', (progress - 0.9) / 0.1);
     }
-  }
-  
-  // Overreaching: yellow → orange → brown
-  const overreachingProgress = Math.min((sets - maxv) / 20, 1);
-  if (overreachingProgress < 0.5) {
+}
+
+// Overreaching: yellow → orange → brown
+const overreachingProgress = Math.min((sets - maxv) / 20, 1);
+if (overreachingProgress < 0.5) {
     return interpolateColor('#fde047', '#f97316', overreachingProgress * 2);
-  } else {
+} else {
     return interpolateColor('#f97316', '#7c2d12', (overreachingProgress - 0.5) * 2);
-  }
+}
 }
 
 // ---------------------------------------------------------------------------

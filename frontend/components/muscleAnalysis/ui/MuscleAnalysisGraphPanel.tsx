@@ -65,14 +65,7 @@ const LEGEND_MAX_DISPLAY = 41; // Set a reasonable max for legend display - can 
 // Zone labels now imported from shared utility in muscleParams.ts
 
 /** Progress bar for weekly possible gains */
-const PossibleGainsBar: React.FC<{ percent: number }> = ({ percent }) => {
-  const getColor = (p: number) => {
-    if (p >= 90) return '#15803d'; // maximizing - deep green
-    if (p >= 60) return '#22c55e'; // optimal - green
-    if (p >= 30) return '#86efac'; // growth - light green
-    return '#64748b'; // below MV - slate
-  };
-
+const PossibleGainsBar: React.FC<{ percent: number; color: string }> = ({ percent, color }) => {
   const textShadow = percent < 70 ? '0 1px 3px rgba(0,0,0,0.5)' : 'none';
 
   return (
@@ -80,7 +73,7 @@ const PossibleGainsBar: React.FC<{ percent: number }> = ({ percent }) => {
       <div className="flex-1 h-4 rounded-md overflow-hidden relative flex" style={{ backgroundColor: 'rgba(100,116,139,0.15)' }}>
         <div 
           className="h-full rounded-md transition-all duration-500 ease-out"
-          style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: getColor(percent) }}
+          style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: color }}
         />
         <span 
           className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white"
@@ -332,7 +325,7 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
         
         {stimulusPercent !== null && (
           <div className="relative w-full max-w-md mt-2">
-            <PossibleGainsBar percent={stimulusPercent} />
+            <PossibleGainsBar percent={stimulusPercent} color={currentColor ?? '#9ca3af'} />
           </div>
         )}
       </div>

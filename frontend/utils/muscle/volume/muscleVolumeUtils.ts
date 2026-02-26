@@ -25,14 +25,14 @@ export const getVolumeIntensity = (sets: number, maxSets: number): string => {
 };
 
 export const getVolumeColor = (sets: number, thresholds?: MuscleVolumeThresholds, maxVolume?: number): string => {
-  if (sets === 0) return '#ffffff';
+  if (sets === 0) return '#ffffffbb';
   return getVolumeZoneColor(sets, thresholds, maxVolume);
 };
 
 // Color for exercise view: shows primary vs secondary muscle involvement
 // Primary = full involvement (green), Secondary = partial involvement (lighter green/yellow)
 export const getExerciseMuscleColor = (sets: number): string => {
-  if (sets === 0) return '#ffffff';
+  if (sets === 0) return '#ffffffbb';
   // Primary muscles (1.0 sets) - strong green
   if (sets >= 1) return '#22c55e';
   // Secondary muscles (0.5 sets) - lighter green
