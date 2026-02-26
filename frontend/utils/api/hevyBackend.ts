@@ -188,9 +188,9 @@ export const hevyBackendRefresh = async (
   return data;
 };
 
-export const hevyBackendGetAccount = async (authToken: string): Promise<{ username: string }> => {
+export const hevyBackendGetAccount = async (authToken: string): Promise<{ username: string; email?: string }> => {
   const cacheKey = browserCache.getCacheKey('hevyAccount', authToken);
-  const cached = browserCache.getCached<{ username: string }>(cacheKey);
+  const cached = browserCache.getCached<{ username: string; email?: string }>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -206,10 +206,10 @@ export const hevyBackendGetAccount = async (authToken: string): Promise<{ userna
   });
 
   if (!res.ok) return throwBackendError(res);
-  const json = (await res.json()) as { username?: string };
+  const json = (await res.json()) as { username?: string; email?: string };
   if (!json.username) throw new Error('Failed to read Hevy username from backend.');
   
-  const data = { username: json.username };
+  const data = { username: json.username, email: json.email };
   browserCache.setCache(cacheKey, data);
   return data;
 };

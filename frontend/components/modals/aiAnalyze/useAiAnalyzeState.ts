@@ -166,7 +166,7 @@ export const useAiAnalyzeState = ({
 
   const handleOpenGemini = useCallback(() => {
     const instruction = 'Paste the clipboard contents.';
-    const url = `https://aistudio.google.com/prompts/new_chat?model=gemini-3-pro-preview&prompt=${encodeURIComponent(instruction)}`;
+    const url = `https://aistudio.google.com/prompts/new_chat?model=gemini-3.1-pro-preview&prompt=${encodeURIComponent(instruction)}`;
     window.open(url, '_blank');
 
     if (resetTimeoutRef.current) {

@@ -85,7 +85,7 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
   // Get username then sets - username is cached so subsequent calls are fast
   const fetchSetsWithToken = (accessToken: string) =>
     hevyBackendGetAccount(accessToken)
-      .then(({ username }) => hevyBackendGetSets<WorkoutSet>(accessToken, username).then(resp => ({ ...resp, username })));
+      .then(({ username, email }) => hevyBackendGetSets<WorkoutSet>(accessToken, username).then(resp => ({ ...resp, username, email })));
 
   const isTokenExpired = (): boolean => {
     const expiresAt = getHevyAuthExpiresAt();
@@ -95,7 +95,7 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
     return expires <= Date.now() + 60_000; // Within 60s of expiry
   };
 
-  const applySetsResponse = (resp: { sets?: WorkoutSet[]; username?: string }, accessToken?: string): void => {
+  const applySetsResponse = (resp: { sets?: WorkoutSet[]; username?: string; email?: string }, accessToken?: string): void => {
     const sets = resp.sets ?? [];
     const hydrated = hydrateBackendWorkoutSets(sets);
     const enriched = identifyPersonalRecords(hydrated);
@@ -107,7 +107,7 @@ export const runHevySyncSaved = (deps: AppAuthHandlersDeps): void => {
     deps.setOnboarding(null);
 
     if (resp.username) {
-      identifyUser(resp.username, { login_method: 'credentials', platform: 'hevy', username: resp.username });
+      identifyUser(resp.username, { login_method: 'credentials', platform: 'hevy', username: resp.username, email: resp.email });
     }
 
     // Fetch account info in background AFTER main data loads (for email list logging)
@@ -251,10 +251,10 @@ export const runHevyLogin = (deps: AppAuthHandlersDeps, emailOrUsername: string,
       saveHevyUsernameOrEmail(trimmed);
       saveLastLoginMethod('hevy', 'credentials', trimmed);
       saveHevyPassword(password);
-      return hevyBackendGetAccount(r.auth_token).then(({ username }) => ({ token: r.auth_token, username }));
+      return hevyBackendGetAccount(r.auth_token).then(({ username, email }) => ({ token: r.auth_token, username, email }));
     })
-    .then(({ token, username }) => {
-      identifyUser(username, { login_method: 'credentials', platform: 'hevy', username });
+    .then(({ token, username, email }) => {
+      identifyUser(username, { login_method: 'credentials', platform: 'hevy', username, email });
       return hevyBackendGetSets<WorkoutSet>(token, username);
     })
     .then((resp) => {
