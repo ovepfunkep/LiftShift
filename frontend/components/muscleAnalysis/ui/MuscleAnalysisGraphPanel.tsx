@@ -11,7 +11,7 @@ import { weeklyStimulusFromThresholds } from '../../../utils/muscle/hypertrophy/
 interface CustomMuscleTooltipProps {
   active?: boolean;
   payload?: any[];
-  label?: string;
+  label?: any;
   volumeThresholds: { mv: number; mev: number; mrv: number; maxv: number };
 }
 
@@ -20,7 +20,12 @@ const CustomMuscleTooltip: React.FC<CustomMuscleTooltipProps> = ({ active, paylo
     const value = payload[0].value;
     const zone = getVolumeZone(value, volumeThresholds);
     const stimulus = calculateStimulusPercent(value, volumeThresholds);
-    
+
+    const ts = payload?.[0]?.payload?.timestamp;
+    const labelText = Number.isFinite(ts)
+      ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
+      : (typeof label === 'string' ? label : String(label ?? ''));
+     
     return (
       <div
         className="p-3 rounded-lg shadow-2xl max-w-[220px]"
@@ -31,7 +36,7 @@ const CustomMuscleTooltip: React.FC<CustomMuscleTooltipProps> = ({ active, paylo
           boxShadow: '0 20px 50px -15px rgb(0 0 0 / 0.35)',
         }}
       >
-        <p className="text-slate-400 text-xs mb-1 font-mono">{label}</p>
+        <p className="text-slate-400 text-xs mb-1 font-mono">{labelText}</p>
         <p className="text-xs text-slate-200 mb-1">
           {formatAxisNumber(value)} sets/wk
         </p>
@@ -54,8 +59,8 @@ interface MuscleAnalysisGraphPanelProps {
   legendMaxSets: number;
   volumeThresholds: { mv: number; mev: number; mrv: number; maxv: number };
   volumeDelta: { direction: 'up' | 'down' | 'same'; formattedPercent: string } | null;
-  trendData: Array<{ period: string; sets: number }>;
-  legendTrendData: Array<{ period: string; sets: number }>;
+  trendData: Array<{ period: string; timestamp: number; sets: number }>;
+  legendTrendData: Array<{ period: string; timestamp: number; sets: number }>;
   windowedSelectionBreakdown: { totalSetsInWindow: number } | null;
   clearSelection: () => void;
 }
@@ -122,13 +127,15 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
   };
 
   const xTicks = useMemo(() => {
-    return getRechartsCategoricalTicks(trendData, (row: any) => row?.period);
+    return getRechartsCategoricalTicks(trendData, (row: any) => row?.timestamp);
   }, [trendData]);
 
   const displayData = useMemo(() => {
-    if (!xTicks || xTicks.length === 0) return trendData;
-    const tickSet = new Set(xTicks);
-    return trendData.filter((row: any) => tickSet.has(row.period));
+    // getRechartsCategoricalTicks() returns undefined when no downsampling is needed.
+    if (!xTicks) return trendData;
+    if (xTicks.length === 0) return [];
+    const tickSet = new Set(xTicks.map((t) => Number(t)).filter((t) => Number.isFinite(t)));
+    return trendData.filter((row: any) => tickSet.has(Number(row.timestamp)));
   }, [trendData, xTicks]);
 
   const yAxisDomain = useMemo(() => {
@@ -163,13 +170,13 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
 
   const gradientStops = useMemo(() => {
     if (!displayData.length) return [];
-    
+     
     const n = displayData.length;
     const stops: Array<{ offset: number; color: string }> = [];
-    
+     
     // Add initial stop
     stops.push({ offset: 0, color: getZoneColor(displayData[0].sets, volumeThresholds, legendMax) });
-    
+     
     for (let i = 0; i < n - 1; i++) {
       const y2 = displayData[i + 1].sets;
       const endOffset = (i + 1) / (n - 1);
@@ -177,7 +184,7 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
       // Add stop at the end of this segment with interpolated color
       stops.push({ offset: endOffset, color: getZoneColor(y2, volumeThresholds, legendMax) });
     }
-    
+     
     return stops;
   }, [displayData, legendMax, volumeThresholds]);
 
@@ -332,7 +339,7 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
         {trendData.length > 0 ? (
           <div className="h-[180px] sm:h-full">
             <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={displayData} margin={{ top: 10, right: 20, left: 5, bottom: 0 }}>
+              <AreaChart data={displayData} margin={{ top: 10, right: 20, left: 5, bottom: 0 }}>
               <defs>
                 <linearGradient id="zoneGradient" x1="0" y1="0" x2="1" y2="0">
                   {gradientStops.map((stop, idx) => (
@@ -341,21 +348,19 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
                 </linearGradient>
               </defs>
               <XAxis
-                dataKey="period"
+                dataKey="timestamp"
+                type="number"
+                scale="time"
+                domain={['dataMin', 'dataMax'] as any}
                 tick={{ fill: '#64748b', fontSize: 9 }}
                 tickLine={false}
                 axisLine={{ stroke: '#334155' }}
                 interval={0}
                 ticks={xTicks as any}
                 tickFormatter={(value) => {
-                  if (!value || typeof value !== 'string') return value;
-                  if (value.includes('-')) {
-                    const date = new Date(value);
-                    if (!isNaN(date.getTime())) {
-                      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    }
-                  }
-                  return value;
+                  const ts = Number(value);
+                  if (!Number.isFinite(ts)) return '';
+                  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 }}
               />
               <YAxis
@@ -377,7 +382,7 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
                 strokeWidth={2}
                 fill="url(#zoneGradient)"
               />
-            </AreaChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         ) : (
