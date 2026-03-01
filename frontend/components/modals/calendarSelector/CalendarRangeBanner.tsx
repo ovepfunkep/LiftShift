@@ -65,14 +65,14 @@ export const CalendarRangeBanner: React.FC<CalendarRangeBannerProps> = ({
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onClear}
-            className="text-[11px] px-2.5 py-1.5 rounded-lg bg-black/60 hover:bg-white/5 text-slate-200 font-semibold transition-colors"
+            className="text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700/10 bg-black/60 hover:bg-white/5 text-slate-200 font-semibold transition-colors"
             title="Clear selection"
           >
             Clear
           </button>
           <button
             onClick={onGoToToday}
-            className="text-[11px] px-2.5 py-1.5 rounded-lg bg-black/60 hover:bg-white/5 text-slate-200 font-semibold transition-colors"
+            className="text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700/10 bg-black/60 hover:bg-white/5 text-slate-200 font-semibold transition-colors"
             title="Go to today"
           >
             Today
