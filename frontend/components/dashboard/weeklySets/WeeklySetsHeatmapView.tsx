@@ -38,7 +38,7 @@ export const WeeklySetsHeatmapView: React.FC<WeeklySetsHeatmapViewProps> = ({
           </div>
         ) : (
           <div className="relative flex justify-center w-full mt-4 sm:mt-6">
-            <div className="transform scale-[0.65] origin-center">
+            <div className="transform scale-[0.75] origin-center">
               <BodyMap
                 onPartClick={onBodyMapClick}
                 selectedPart={null}

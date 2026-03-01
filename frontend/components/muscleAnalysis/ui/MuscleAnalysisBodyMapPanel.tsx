@@ -163,7 +163,7 @@ export const MuscleAnalysisBodyMapPanel: React.FC<MuscleAnalysisBodyMapPanelProp
       ) : (
         <div className="flex-1 flex flex-col h-full pt-10 pb-6">
           <div className="flex-1 h-full flex items-center justify-center">
-            <div className="scale-90">
+            <div className="scale-85">
               <BodyMap
                 onPartClick={handleClick}
                 selectedPart={selectedMuscle}

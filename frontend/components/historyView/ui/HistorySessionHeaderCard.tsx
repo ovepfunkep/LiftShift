@@ -150,8 +150,8 @@ export const HistorySessionHeaderCard: React.FC<HistorySessionHeaderCardProps> =
                 data-no-toggle
                 className="col-start-2 col-span-2 row-start-3 row-span-5 flex items-stretch pl-2 border-l border-slate-800/50 overflow-visible transition-all duration-300"
               >
-                <div className="w-full h-full flex items-center justify-center overflow-visible">
-                  <div className="w-full h-full overflow-visible">
+                <div className="w-full h-full flex items-center justify-center overflow-visible mt-5">
+                  <div className="w-full h-full overflow-visible scale-[1.3] origin-bottom">
                     <HistorySessionBodyMap
                       headlessVolumes={sessionHeadlessVolumes}
                       headlessMaxVolume={sessionHeadlessMaxVolume}
@@ -223,10 +223,11 @@ export const HistorySessionHeaderCard: React.FC<HistorySessionHeaderCardProps> =
             )}
           </span>
 
-          <div className="pl-1 pt-1">
+       
+        </div>
+           <div className="pl-1 pt-1">
             <MuscleSetsList headlessVolumes={sessionHeadlessVolumes} />
           </div>
-        </div>
       </div>
 
       <div className={sessionHeatmapHasData ? 'hidden sm:flex items-center justify-center px-2 text-black dark:text-slate-300' : 'flex items-center justify-center px-2 text-black dark:text-slate-300'}>
@@ -239,7 +240,7 @@ export const HistorySessionHeaderCard: React.FC<HistorySessionHeaderCardProps> =
       {sessionHeatmapHasData && (
         <div data-no-toggle className="hidden sm:flex relative z-10 flex-shrink-0 items-stretch pl-1 sm:pl-4 py-1 sm:py-2 border-l border-slate-800/50 self-stretch overflow-visible">
           <div className="w-[50vw] h-[30vh] sm:w-32 sm:h-28 md:w-60 md:h-36 md:-mr-6 flex items-center justify-center overflow-visible">
-            <div className="w-full h-full md:scale-[1.25] origin-center overflow-visible">
+            <div className="w-full h-full md:scale-[1.7] mt-10 overflow-visible">
               <HistorySessionBodyMap
                 headlessVolumes={sessionHeadlessVolumes}
                 headlessMaxVolume={sessionHeadlessMaxVolume}
