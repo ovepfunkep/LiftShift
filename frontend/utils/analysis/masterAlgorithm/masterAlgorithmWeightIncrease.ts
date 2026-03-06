@@ -39,7 +39,8 @@ export const analyzeWeightIncrease = (
       pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
       pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
       buildStructured(`+${pct}% weight`, 'up', [
-        line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'green'),
+        line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'gray'),
+        line(`Expected: ${expectedLabel} reps`, 'gray'),
         line(whyLines[1], 'gray'),
       ])
     );
@@ -58,7 +59,8 @@ export const analyzeWeightIncrease = (
       pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
       pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
       buildStructured(`+${pct}% weight`, 'up', [
-        line(whyLines[0].replace('{currReps}', String(currReps)), 'green'),
+        line(whyLines[0].replace('{currReps}', String(currReps)), 'gray'),
+        line(`Expected: ${expectedLabel} reps`, 'gray'),
         line(whyLines[1], 'gray'),
       ])
     );
@@ -81,10 +83,11 @@ export const analyzeWeightIncrease = (
         `+${pct}% weight`,
         'up',
         [
-          line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'yellow'),
+          line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'gray'),
+          line(`Expected: ${expectedLabel} reps`, 'gray'),
           line(whyLines[1], 'gray'),
         ],
-        [line(improveLines[0], 'blue'), line(improveLines[1], 'gray')]
+        [line(improveLines[0], 'gray'), line(improveLines[1], 'gray')]
       )
     );
   }
@@ -105,10 +108,11 @@ export const analyzeWeightIncrease = (
       `+${pct}% weight`,
       'up',
       [
-        line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'red'),
+        line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'gray'),
+        line(`Expected: ${expectedLabel} reps`, 'gray'),
         line(whyLines[1], 'gray'),
       ],
-      [line(improveLines[0], 'blue'), line(improveLines[1], 'gray')]
+      [line(improveLines[0], 'gray'), line(improveLines[1], 'gray')]
     )
   );
 };

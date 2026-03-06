@@ -36,7 +36,7 @@ export const TooltipPortal: React.FC<{ data: TooltipState }> = ({ data }) => {
   const renderLine = (line: TooltipLine, idx: number) => (
     <div
       key={idx}
-      className={`text-xs leading-relaxed ${line.color ? LINE_COLORS[line.color] : 'text-slate-300'} ${
+      className={`text-xs leading-relaxed text-slate-300 ${
         line.bold ? 'font-semibold' : ''
       }`}
     >

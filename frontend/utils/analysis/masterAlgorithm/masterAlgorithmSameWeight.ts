@@ -45,7 +45,7 @@ export const analyzeSameWeight = (
       `${prevReps}`,
       pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
       pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
-      buildStructured('= reps', 'same', [line(whyLines[0], 'green'), line(whyLines[1], 'gray')])
+      buildStructured('= reps', 'same', [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')])
     );
   }
 
@@ -64,7 +64,7 @@ export const analyzeSameWeight = (
       `${prevReps}`,
       pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
       pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
-      buildStructured(`-${dropAbs} reps`, 'down', [line(whyLines[0], 'blue'), line(whyLines[1], 'gray')])
+      buildStructured(`-${dropAbs} reps`, 'down', [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')])
     );
   }
 
@@ -74,8 +74,8 @@ export const analyzeSameWeight = (
     const improveLines = commentary.improveLines || [];
 
     const why: TooltipLine[] = isAfterFirstWorkingSet
-      ? [line(whyLines[0], 'yellow')]
-      : [line(whyLines[0], 'yellow'), line(whyLines[1], 'gray')];
+      ? [line(whyLines[0], 'gray')]
+      : [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')];
 
     return createAnalysisResult(
       transition,
@@ -90,7 +90,7 @@ export const analyzeSameWeight = (
         `-${dropAbs} reps`,
         'down',
         why,
-        [line(improveLines[0], 'gray'), line(improveLines[1], 'blue')]
+        [line(improveLines[0], 'gray'), line(improveLines[1], 'gray')]
       )
     );
   }
@@ -100,8 +100,8 @@ export const analyzeSameWeight = (
   const improveLines = commentary.improveLines || [];
 
   const why: TooltipLine[] = isAfterFirstWorkingSet
-    ? [line(whyLines[0], 'red'), line(whyLines[1], 'gray')]
-    : [line(whyLines[0], 'red'), line(whyLines[1], 'gray')];
+    ? [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')]
+    : [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')];
 
   return createAnalysisResult(
     transition,
@@ -116,7 +116,7 @@ export const analyzeSameWeight = (
       `-${dropAbs} reps`,
       'down',
       why,
-      [line(improveLines[0], 'green'), line(improveLines[1], 'blue')]
+      [line(improveLines[0], 'gray'), line(improveLines[1], 'gray')]
     )
   );
 };

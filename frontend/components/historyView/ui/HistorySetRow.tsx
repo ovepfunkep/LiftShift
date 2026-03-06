@@ -81,10 +81,24 @@ export const HistorySetRow: React.FC<HistorySetRowProps> = ({
     animation: 'prRowShimmer 3s ease-in-out infinite',
   }) : {};
 
+  const handleRowMouseEnter = (e: React.MouseEvent) => {
+    if (insight) {
+      onMouseEnter(e, insight, 'set');
+    }
+  };
+
+  const handleRowMouseLeave = (e: React.MouseEvent) => {
+    if (insight) {
+      onClearTooltip();
+    }
+  };
+
   return (
     <div
-      className={`relative z-10 flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 rounded-lg border ${rowStatusClass} transition-all hover:bg-black/60 group overflow-visible`}
+      className={`relative z-10 flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 rounded-lg border ${rowStatusClass} transition-all hover:bg-black/60 group overflow-visible ${insight ? 'cursor-help' : ''}`}
       style={prShimmerStyle}
+      onMouseEnter={handleRowMouseEnter}
+      onMouseLeave={handleRowMouseLeave}
     >
       <div
         className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold border-2 transition-all text-white ${set.isPr
@@ -156,8 +170,6 @@ export const HistorySetRow: React.FC<HistorySetRowProps> = ({
             <button
               type="button"
               onClick={(e) => onTooltipToggle(e, insight, 'set')}
-              onMouseEnter={(e) => onMouseEnter(e, insight, 'set')}
-              onMouseLeave={onClearTooltip}
               className="cursor-help flex items-center justify-center w-6 h-6 rounded hover:bg-black/60 transition-colors"
               aria-label={insight.shortMessage}
             >

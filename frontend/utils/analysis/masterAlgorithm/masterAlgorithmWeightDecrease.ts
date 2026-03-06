@@ -37,7 +37,11 @@ export const analyzeWeightDecrease = (
       expectedLabel,
       pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
       pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
-      buildStructured(`${pct}% weight`, 'down', [line(whyLines[0], 'green'), line(whyLines[1], 'gray')])
+      buildStructured(`${pct}% weight`, 'down', [
+        line(whyLines[0], 'gray'),
+        line(`Expected: ${expectedLabel} reps`, 'gray'),
+        line(whyLines[1], 'gray')
+      ])
     );
   }
 
@@ -57,7 +61,8 @@ export const analyzeWeightDecrease = (
         `${pct}% weight`,
         'down',
         [
-          line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'yellow'),
+          line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'gray'),
+          line(`Expected: ${expectedLabel} reps`, 'gray'),
           line(whyLines[1], 'gray'),
         ]
       )
@@ -80,10 +85,11 @@ export const analyzeWeightDecrease = (
       `${pct}% weight`,
       'down',
       [
-        line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'red'),
+        line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'gray'),
+        line(`Expected: ${expectedLabel} reps`, 'gray'),
         line(whyLines[1], 'gray'),
       ],
-      [line(improveLines[0], 'green'), line(improveLines[1], 'gray')]
+      [line(improveLines[0], 'gray'), line(improveLines[1], 'gray')]
     )
   );
 };
