@@ -159,35 +159,7 @@ export const WeeklySetsCard = ({
 
       <ChartDescription
         isMounted={isMounted}
-        topSlot={
-          weeklySetsView === 'heatmap' ? (
-            <div className="flex items-center gap-3 text-xs text-slate-400 bg-slate-950/75 border border-slate-700/50 backdrop-blur-sm rounded-lg px-3 py-1.5 w-fit">
-              {(() => {
-                const thresholds = getVolumeThresholds(trainingLevel);
-                return (
-                  <>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-2 rounded border border-slate-700/50" style={{ backgroundColor: '#ffffff' }}></div>
-                      <span>None</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-2 rounded" style={{ backgroundColor: getVolumeZoneColor(thresholds.mv, thresholds) }}></div>
-                      <span>Activating</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-2 rounded" style={{ backgroundColor: getVolumeZoneColor(thresholds.mev, thresholds) }}></div>
-                      <span>Stimulating</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-2 rounded" style={{ backgroundColor: getVolumeZoneColor(thresholds.maxv, thresholds) }}></div>
-                      <span>Overreaching</span>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          ) : null
-        }
+       
       >
         <InsightLine>
           {weeklySetsInsight ? (
