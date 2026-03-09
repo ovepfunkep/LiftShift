@@ -5,6 +5,7 @@ import type { WeightUnit } from '../../storage/localStorage';
 import type { ExerciseProgressionProfile } from '../userProfile';
 import { convertWeight } from '../../format/units';
 import { getSuggestedWeightForTarget } from '../userProfile';
+import { pickDeterministic } from '../common/messageVariations';
 
 const fmt = (value: number): string => {
   const rounded = Math.round(value * 100) / 100;
@@ -12,6 +13,89 @@ const fmt = (value: number): string => {
 };
 
 const roundReps = (value: number): number => Math.max(3, Math.round(value));
+
+const PROMOTE_MESSAGES = [
+  'Ceiling hit, ready to progress',
+  'Ready to level up',
+  'Time to add weight',
+  'You have outgrown this load',
+  'Strong performance, progress awaits',
+  'Crushed the ceiling, move up',
+  'Load maxed out, add weight',
+  'At your limit, push forward',
+  'Ceiling reached, ready for more',
+  'Ready to advance',
+  'Time to increase the challenge',
+  'You have earned a weight increase',
+  'Performance ceiling hit',
+  'Ready for heavier load',
+  'Push to the next level',
+] as const;
+
+const PROMOTE_TOOLTIPS = [
+  'Next: Pick ~{upDisplay}, target {targetReps} reps across all sets',
+  'Move up: Try ~{upDisplay}, aim for {targetReps} reps',
+  'Ready for more: Use ~{upDisplay} and target {targetReps} reps',
+  'Level up: Switch to ~{upDisplay}, hit {targetReps} reps',
+  'Add weight: Go to ~{upDisplay}, aim for {targetReps} reps',
+  'Progress time: Try ~{upDisplay} for {targetReps} reps',
+  'Next step: ~{upDisplay}, {targetReps} reps target',
+  'Ready: Use ~{upDisplay}, get {targetReps} reps',
+  'Advance: Pick ~{upDisplay}, lock in {targetReps} reps',
+  'Push forward: ~{upDisplay}, {targetReps} reps goal',
+] as const;
+
+const DEMOTE_HEAVY_MESSAGES = [
+  'Load is limiting you',
+  'Weight too heavy',
+  'Too heavy for progress',
+  'Load exceeding capacity',
+  'Weight holding you back',
+  'Heavier is not working',
+  'Drop weight to progress',
+  'Load needs to come down',
+  'Too heavy to grow',
+  'Weight blocks progress',
+  'Heavy is not helping',
+  'Load needs reduction',
+] as const;
+
+const DEMOTE_HEAVY_TOOLTIPS = [
+  'Next: Pick ~{downDisplay}, target {rebuildTarget} reps across all sets',
+  'Drop down: Try ~{downDisplay}, aim for {rebuildTarget} reps',
+  'Lighter load: Use ~{downDisplay} and target {rebuildTarget} reps',
+  'Scale back: Go to ~{downDisplay}, hit {rebuildTarget} reps',
+  'Reduce weight: Try ~{downDisplay} for {rebuildTarget} reps',
+  'Step down: Use ~{downDisplay}, {rebuildTarget} reps goal',
+  'Come down: Pick ~{downDisplay}, lock in {rebuildTarget} reps',
+  'Lighter: ~{downDisplay}, {rebuildTarget} reps target',
+] as const;
+
+const DEMOTE_INCONSISTENT_MESSAGES = [
+  'Load control is inconsistent',
+  'Reps are all over the place',
+  'Output varies too much',
+  'Sets need to stabilize',
+  'Consistency is the issue',
+  'Reps need to even out',
+  'Work on uniform output',
+  'Sets are uneven',
+  'Need steady performance',
+  'Output needs to converge',
+  'Variable performance',
+  'Reps are too scattered',
+] as const;
+
+const DEMOTE_INCONSISTENT_TOOLTIPS = [
+  'Next: Pick ~{preferredWeight}, target {targetReps} reps across all sets',
+  'Stabilize: Try ~{preferredWeight}, aim for {targetReps} reps',
+  'Even out: Use ~{preferredWeight} and target {targetReps} reps',
+  'Consistency: Go to ~{preferredWeight}, hit {targetReps} reps',
+  'Uniform output: Try ~{preferredWeight} for {targetReps} reps',
+  'Steady: Use ~{preferredWeight}, {targetReps} reps goal',
+  'Even performance: Pick ~{preferredWeight}, lock in {targetReps} reps',
+  'Converge: ~{preferredWeight}, {targetReps} reps target',
+] as const;
 
 export interface AnalyzeProgressionOptions {
   typicalWeightJump?: number;
@@ -54,24 +138,36 @@ export const analyzeProgression = (
   const downDisplay = `${fmt(suggestedDownWeight)}${weightUnit}`;
   const upDisplay = `${fmt(suggestedUpWeight)}${weightUnit}`;
 
+  const seedBase = `progression-${maxWeight}-${reps.join('-')}`;
+
   // Strong promote only when top load is repeated and both sets are at/above ceiling
   const topRepeated = topWeightReps.length >= 2;
   const topAllAtCeiling = topWeightReps.every((r) => r >= ceilingReps);
   if (topRepeated && topAllAtCeiling) {
+    const message = pickDeterministic(`${seedBase}|promote`, PROMOTE_MESSAGES as readonly string[]) as string;
+    let tooltip = pickDeterministic(`${seedBase}|promote-tip`, PROMOTE_TOOLTIPS as readonly string[]) as string;
+    tooltip = tooltip
+      .replace('{upDisplay}', upDisplay)
+      .replace('{targetReps}', String(targetReps));
     return {
       type: 'promote',
-      message: 'Ceiling hit - ready to progress',
-      tooltip: `Next: Pick ~${upDisplay}, target ${targetReps} reps across all sets`,
+      message,
+      tooltip,
     };
   }
 
   // Too heavy if output collapses below hypertrophy floor
   if (minReps < MIN_HYPERTROPHY_REPS) {
     const rebuildTarget = Math.max(MIN_HYPERTROPHY_REPS, targetReps);
+    const message = pickDeterministic(`${seedBase}|demote-heavy`, DEMOTE_HEAVY_MESSAGES as readonly string[]) as string;
+    let tooltip = pickDeterministic(`${seedBase}|demote-heavy-tip`, DEMOTE_HEAVY_TOOLTIPS as readonly string[]) as string;
+    tooltip = tooltip
+      .replace('{downDisplay}', downDisplay)
+      .replace('{rebuildTarget}', String(rebuildTarget));
     return {
       type: 'demote',
-      message: 'Load is limiting you',
-      tooltip: `Next: Pick ~${downDisplay}, target ${rebuildTarget} reps across all sets`,
+      message,
+      tooltip,
     };
   }
 
@@ -79,10 +175,15 @@ export const analyzeProgression = (
   if (spread >= 2) {
     // If current top weight is above target output, settle one step down
     const preferredWeight = avgReps < targetReps ? downDisplay : topWeightDisplay;
+    const message = pickDeterministic(`${seedBase}|demote-inconsistent`, DEMOTE_INCONSISTENT_MESSAGES as readonly string[]) as string;
+    let tooltip = pickDeterministic(`${seedBase}|demote-inconsistent-tip`, DEMOTE_INCONSISTENT_TOOLTIPS as readonly string[]) as string;
+    tooltip = tooltip
+      .replace('{preferredWeight}', preferredWeight)
+      .replace('{targetReps}', String(targetReps));
     return {
       type: 'demote',
-      message: 'Load control is inconsistent',
-      tooltip: `Next: Pick ~${preferredWeight}, target ${targetReps} reps across all sets`,
+      message,
+      tooltip,
     };
   }
 
