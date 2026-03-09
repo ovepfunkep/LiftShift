@@ -8,7 +8,7 @@ const STATUS_COLORS: Readonly<Record<AnalysisStatus, string>> = {
 };
 
 const WISDOM_COLORS: Readonly<Record<string, string>> = {
-  promote: 'bg-purple-500/10 text-purple-400 border-purple-500/50',
+  promote: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50',
   demote: 'bg-orange-500/10 text-orange-400 border-orange-500/50',
 };
 

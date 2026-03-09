@@ -189,9 +189,9 @@ export const SAME_WEIGHT_DROP_MODERATE: SetCommentaryOptions = {
   ] as const,
   improveLines: [
     'Take longer rest between sets',
-    'Reduce weight slightly',
-    'Focus on fewer but harder sets',
-    'Consider deload week',
+    'Keep the same load and aim to lose fewer reps next set',
+    'Use steadier tempo to preserve output',
+    'Set up breathing before each rep to improve endurance',
   ] as const,
 };
 
@@ -237,9 +237,9 @@ export const SAME_WEIGHT_DROP_SEVERE: SetCommentaryOptions = {
     'Body asking for rest',
   ] as const,
   improveLines: [
-    'Stop set and rest longer',
-    'Reduce weight significantly',
-    'Take a deload week',
-    'Your body needs recovery',
+    'Add more rest before the hard sets',
+    'Use a slightly lighter load for this exercise',
+    'Prioritize clean reps and stop 1 rep before form breaks',
+    'Push to failure on your last set',
   ] as const,
 };

@@ -1,11 +1,20 @@
 import { MAX_EXPECTED_REPS_DISPLAY } from './masterAlgorithmConstants';
 import { adjustOneRMForRPE, clamp, median, percentile, predictReps } from './masterAlgorithmMath';
 import type { ExpectedRepsRange, SetMetrics } from './masterAlgorithmTypes';
+import { COMMENTARY_CONFIG } from '../config/commentaryConfig';
+import type { RepProfile, TrainingParams } from '../userProfile';
+
+export interface UserProfileContext {
+  repProfile: RepProfile | null;
+  trainingParams: TrainingParams;
+  isCompound: boolean;
+}
 
 export const buildExpectedRepsRange = (
   priorSets: SetMetrics[],
   targetWeight: number,
-  targetSetNumber: number
+  targetSetNumber: number,
+  userProfile?: UserProfileContext
 ): ExpectedRepsRange => {
   const candidates = priorSets
     .map(s => adjustOneRMForRPE(s.oneRM, s.rpe))
@@ -19,9 +28,30 @@ export const buildExpectedRepsRange = (
   const estimateOneRM = percentile(recent, 0.75) || median(recent) || median(candidates);
   const basePredicted = predictReps(estimateOneRM, targetWeight);
 
-  const fatiguePenalty = clamp(0.4 * Math.max(0, targetSetNumber - 1), 0, 3);
+  let fatigueRate = 0.4;
+  if (userProfile) {
+    fatigueRate = userProfile.isCompound
+      ? COMMENTARY_CONFIG.exerciseType.compoundFatigueRate
+      : COMMENTARY_CONFIG.exerciseType.isolationFatigueRate;
+  }
+  
+  const fatiguePenalty = clamp(
+    fatigueRate * Math.max(0, targetSetNumber - 1) + 
+    (userProfile?.trainingParams.fatigueBufferExtra ?? 0),
+    0,
+    3
+  );
   const rawCenter = Math.max(1, basePredicted - fatiguePenalty);
-  const center = Math.min(rawCenter, MAX_EXPECTED_REPS_DISPLAY);
+  let center = Math.min(rawCenter, MAX_EXPECTED_REPS_DISPLAY);
+
+  if (userProfile?.repProfile) {
+    const userReps = userProfile.repProfile.positions.get(targetSetNumber);
+    if (userReps) {
+      const blendWeight = COMMENTARY_CONFIG.repProfile.weightBlending;
+      center = center * (1 - blendWeight) + userReps.medianReps * blendWeight;
+      center = Math.max(1, center);
+    }
+  }
 
   const q25 = percentile(recent, 0.25);
   const q75 = percentile(recent, 0.75);
@@ -35,6 +65,7 @@ export const buildExpectedRepsRange = (
   max = Math.min(max, MAX_EXPECTED_REPS_DISPLAY);
   if (max < min) max = min;
 
-  const label = min === max ? `~${min}` : `${min}-${max}`;
-  return { min, max, center, label };
+  const roundedCenter = Math.round(center);
+  const label = `~${roundedCenter}`;
+  return { min: roundedCenter, max: roundedCenter, center: roundedCenter, label };
 };

@@ -1,96 +1,89 @@
 import { WorkoutSet, SetWisdom } from '../../../types';
-import { pickDeterministic } from '../common/messageVariations';
-import { getDemoteInconsistentMessage, getDemoteTooHeavyMessage, getPromoteMessage } from '../setCommentary/setCommentaryLibrary';
 import { isWarmupSet } from '../classification';
-import { DEFAULT_TARGET_REPS, MIN_HYPERTROPHY_REPS, PROMOTE_THRESHOLD } from './masterAlgorithmConstants';
+import { MIN_HYPERTROPHY_REPS } from './masterAlgorithmConstants';
+import type { WeightUnit } from '../../storage/localStorage';
+import type { ExerciseProgressionProfile } from '../userProfile';
+import { convertWeight } from '../../format/units';
+import { getSuggestedWeightForTarget } from '../userProfile';
+
+const fmt = (value: number): string => {
+  const rounded = Math.round(value * 100) / 100;
+  return Number.isInteger(rounded) ? `${rounded}` : `${rounded}`;
+};
+
+const roundReps = (value: number): number => Math.max(3, Math.round(value));
+
+export interface AnalyzeProgressionOptions {
+  typicalWeightJump?: number;
+  weightUnit?: WeightUnit;
+  isCompound?: boolean;
+  progressionProfile?: ExerciseProgressionProfile | null;
+}
 
 export const analyzeProgression = (
   allSetsForExercise: WorkoutSet[],
-  targetReps: number = DEFAULT_TARGET_REPS
+  _targetReps = 10,
+  options?: AnalyzeProgressionOptions
 ): SetWisdom | null => {
-  const workingSets = allSetsForExercise.filter(s => !isWarmupSet(s));
+  const workingSets = allSetsForExercise.filter(s => !isWarmupSet(s) && s.reps > 0 && s.weight_kg > 0);
+  if (workingSets.length < 2) return null;
 
-  if (workingSets.length === 0) return null;
+  const weightUnit = options?.weightUnit ?? 'kg';
+  const profile = options?.progressionProfile;
+  if (!profile || profile.availableWeights.length === 0) return null;
 
-  const exerciseName = workingSets[0]?.exercise_title || 'unknown';
-  const seedBase = `progression|${exerciseName}|${workingSets.length}`;
+  const sets = workingSets.map((s) => ({ reps: s.reps, weight: convertWeight(s.weight_kg, weightUnit) }));
+  const reps = sets.map((s) => s.reps);
+  const weights = sets.map((s) => s.weight);
+  const maxWeight = Math.max(...weights);
+  const topWeightSets = sets.filter((s) => s.weight >= maxWeight * 0.95);
+  if (topWeightSets.length === 0) return null;
 
-  const reps = workingSets.map(s => s.reps).filter(r => Number.isFinite(r));
-  const weights = workingSets.map(s => s.weight_kg).filter(w => Number.isFinite(w));
-  
-  // Guard against empty arrays after filtering
-  if (reps.length === 0 || weights.length === 0) return null;
-  
+  const topWeightReps = topWeightSets.map((s) => s.reps);
   const minReps = Math.min(...reps);
   const maxReps = Math.max(...reps);
+  const spread = maxReps - minReps;
   const avgReps = Math.round(reps.reduce((a, b) => a + b, 0) / reps.length);
 
-  const maxWeight = Math.max(...weights);
-  const minWeight = Math.min(...weights);
-  const sameWeight = (maxWeight - minWeight) / maxWeight < 0.05;
+  const targetReps = roundReps(profile.repTarget);
+  const ceilingReps = roundReps(profile.repCeiling);
+  const topWeightDisplay = `${fmt(maxWeight)}${weightUnit}`;
 
-  const topWeightSets = workingSets.filter(s => s.weight_kg >= maxWeight * 0.95);
-  const topWeightReps = topWeightSets.map(s => s.reps);
-  const topWeightMinReps = topWeightReps.length > 0 ? Math.min(...topWeightReps) : minReps;
-  const topWeightAvgReps = topWeightReps.length > 0
-    ? Math.round(topWeightReps.reduce((a, b) => a + b, 0) / topWeightReps.length)
-    : avgReps;
+  const suggestedDownWeight = getSuggestedWeightForTarget(profile, maxWeight, 'down');
+  const suggestedUpWeight = getSuggestedWeightForTarget(profile, maxWeight, 'up');
+  const downDisplay = `${fmt(suggestedDownWeight)}${weightUnit}`;
+  const upDisplay = `${fmt(suggestedUpWeight)}${weightUnit}`;
 
-  if (topWeightMinReps >= targetReps) {
-    const increase = topWeightMinReps >= PROMOTE_THRESHOLD ? '5-10%' : '2.5-5%';
+  // Strong promote only when top load is repeated and both sets are at/above ceiling
+  const topRepeated = topWeightReps.length >= 2;
+  const topAllAtCeiling = topWeightReps.every((r) => r >= ceilingReps);
+  if (topRepeated && topAllAtCeiling) {
     return {
       type: 'promote',
-      message: pickDeterministic(`${seedBase}|promote_msg`, [
-        'Increase Weight',
-        'Level Up',
-        'Add Load',
-        'Progress',
-        'Next Level',
-        'Increase',
-        'Add Weight',
-        'Step Up',
-      ] as const),
-      tooltip: getPromoteMessage(seedBase, { minReps: topWeightMinReps, increase }),
+      message: 'Ceiling hit - ready to progress',
+      tooltip: `Next: Pick ~${upDisplay}, target ${targetReps} reps across all sets`,
     };
   }
 
-  if (topWeightReps.length > 0 && Math.max(...topWeightReps) < MIN_HYPERTROPHY_REPS) {
+  // Too heavy if output collapses below hypertrophy floor
+  if (minReps < MIN_HYPERTROPHY_REPS) {
+    const rebuildTarget = Math.max(MIN_HYPERTROPHY_REPS, targetReps);
     return {
       type: 'demote',
-      message: pickDeterministic(`${seedBase}|demote_heavy_msg`, [
-        'Decrease Weight',
-        'Reduce Load',
-        'Deload',
-        'Lighten Up',
-        'Reduce',
-        'Too Heavy',
-        'Back Off',
-      ] as const),
-      tooltip: getDemoteTooHeavyMessage(seedBase, { maxReps: Math.max(...topWeightReps) }),
+      message: 'Load is limiting you',
+      tooltip: `Next: Pick ~${downDisplay}, target ${rebuildTarget} reps across all sets`,
     };
   }
 
-  if (topWeightReps.length >= 2 && topWeightMinReps < targetReps - 3 && Math.max(...topWeightReps) >= targetReps) {
+  // Inconsistency branch: keep/choose weight based on average-target fit
+  if (spread >= 2) {
+    // If current top weight is above target output, settle one step down
+    const preferredWeight = avgReps < targetReps ? downDisplay : topWeightDisplay;
     return {
       type: 'demote',
-      message: pickDeterministic(`${seedBase}|demote_inconsistent_msg`, [
-        'Inconsistent',
-        'Varying',
-        'Fluctuating',
-        'Unstable',
-        'Scattered',
-        'Inconsistent Output',
-        'Inconsistent Reps',
-      ] as const),
-      tooltip: getDemoteInconsistentMessage(seedBase, {
-        minReps: topWeightMinReps,
-        maxReps: Math.max(...topWeightReps),
-      }),
+      message: 'Load control is inconsistent',
+      tooltip: `Next: Pick ~${preferredWeight}, target ${targetReps} reps across all sets`,
     };
-  }
-
-  if (sameWeight && avgReps > 0 && topWeightAvgReps > 0) {
-    // No change yet: keep historical behavior for now.
   }
 
   return null;

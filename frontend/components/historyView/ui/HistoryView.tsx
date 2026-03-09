@@ -11,12 +11,13 @@ import { BodyMapGender } from '../../bodyMap/BodyMap';
 import { useTheme } from '../../theme/ThemeProvider';
 import { TooltipPortal } from './HistoryTooltipPortal';
 import { buildHistorySessions, type Session } from '../utils/historySessions';
-import { useExerciseBestHistory, useExerciseVolumeHistory, useExerciseVolumePrHistory } from '../utils/exerciseHistoryHooks';
+import { useExerciseBestHistory, useExerciseVolumeHistory, useExerciseVolumePrHistory, useExerciseHistoricalSets } from '../utils/exerciseHistoryHooks';
 import { useHistoryTooltip } from '../hooks/useHistoryTooltip';
 import { HistoryPaginationControls } from './HistoryPaginationControls';
 import { HistorySessionBlock } from './HistorySessionBlock';
 import { ITEMS_PER_PAGE, isSameCalendarDay } from '../utils/historyViewConstants';
 import { prefetchFlexData } from '../../../utils/prefetch/prefetchStrategies';
+import { useTrainingLevel } from '../../../hooks/app/useTrainingLevel';
 
 interface HistoryViewProps {
   data: WorkoutSet[];
@@ -57,6 +58,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const exerciseVolumeHistory = useExerciseVolumeHistory(data);
   const { exerciseBests, currentBests } = useExerciseBestHistory(data);
   const { exerciseVolumePrBests } = useExerciseVolumePrHistory(data);
+  const exerciseHistoricalSets = useExerciseHistoricalSets(data);
+  const { trainingLevel } = useTrainingLevel(data, effectiveNow);
 
   useEffect(() => setCurrentPage(1), [data]);
 
@@ -190,6 +193,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             exerciseBests={exerciseBests}
             currentBests={currentBests}
             exerciseVolumePrBests={exerciseVolumePrBests}
+            exerciseHistoricalSets={exerciseHistoricalSets}
+            trainingLevel={trainingLevel}
             onExerciseClick={onExerciseClick}
             onTooltipToggle={handleTooltipToggle}
             onMouseEnter={handleMouseEnter}

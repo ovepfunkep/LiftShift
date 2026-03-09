@@ -1,14 +1,17 @@
 import React from 'react';
-import type { AnalysisResult } from '../../../types';
+import type { AnalysisResult, SetWisdom } from '../../../types';
 import { isWorkingSet } from '../../../utils/analysis/classification';
 import type { WeightUnit } from '../../../utils/storage/localStorage';
 import type { GroupedExercise } from '../utils/historySessions';
 import type { ExerciseBestEvent, ExerciseVolumePrEvent } from '../utils/historyViewTypes';
 import { HistorySetRow } from './HistorySetRow';
+import { getWisdomColor } from '../../../utils/analysis/masterAlgorithm';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface HistorySetListProps {
   group: GroupedExercise;
   insights: AnalysisResult[];
+  macroInsight?: SetWisdom | null;
   prEventsForSession: ExerciseBestEvent[];
   volPrEvent: ExerciseVolumePrEvent | null;
   volPrAnchorIndex: number;
@@ -21,6 +24,7 @@ interface HistorySetListProps {
 export const HistorySetList: React.FC<HistorySetListProps> = ({
   group,
   insights,
+  macroInsight,
   prEventsForSession,
   volPrEvent,
   volPrAnchorIndex,
@@ -57,6 +61,28 @@ export const HistorySetList: React.FC<HistorySetListProps> = ({
           />
         );
       })}
+
+      {macroInsight && (
+        <div
+          className={`flex flex-col gap-1 p-3 rounded-lg border ${getWisdomColor(macroInsight.type)}`}
+        >
+          <div className="flex items-center gap-2">
+            {macroInsight.type === 'promote' ? (
+              <TrendingUp className="w-4 h-4" />
+            ) : (
+              <TrendingDown className="w-4 h-4" />
+            )}
+            <div className="flex-1 text-sm font-semibold text-slate-200">
+              {macroInsight.message}
+            </div>
+          </div>
+          {macroInsight.tooltip && (
+            <div className="text-xs text-slate-400 leading-relaxed">
+              {macroInsight.tooltip}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -87,9 +87,9 @@ export const WEIGHT_DECREASE_SLIGHTLY_BELOW: SetCommentaryOptions = {
   improveLines: [
     'Drop weight a bit more',
     'Add extra rest before this set',
-    'Focus on recovery between sessions',
-    'Consider a deload',
-    'Lower volume for a set or two',
+    'Keep this load and aim to match reps on the next set',
+    'Tighten setup and tempo to stabilize performance',
+    'Stop 1 rep before form breakdown to keep quality high',
   ] as const,
 };
 
@@ -126,19 +126,19 @@ export const WEIGHT_DECREASE_SIGNIFICANTLY_BELOW: SetCommentaryOptions = {
     'Drop was too small',
     'Strength significantly down',
     'Body needs more rest',
-    'Volume may be too high',
+    'Set-to-set fatigue is limiting output right now',
     'Energy depleted',
     'Possible overreach',
     'Need deeper reset',
-    'Consider deload week',
+    'You likely need a deeper in-session reset',
     'Systemic fatigue present',
     'Training stress high',
   ] as const,
   improveLines: [
     'Reduce load further',
-    'Take extra rest or deload',
-    'Keep reps lower for a set or two',
-    'Cut volume temporarily',
-    'Prioritize recovery before pushing again',
+    'Take longer rest before repeating this effort',
+    'Use controlled reps and keep form strict',
+    'Treat the next set as a quality set, not an all-out set',
+    'Rebuild reps gradually before increasing intensity again',
   ] as const,
 };

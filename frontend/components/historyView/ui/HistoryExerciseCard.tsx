@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { analyzeProgression, analyzeSetProgression, isWarmupSet } from '../../../utils/analysis/masterAlgorithm';
 import type { ExerciseMuscleData } from '../../../utils/muscle/mapping';
 import type { WeightUnit } from '../../../utils/storage/localStorage';
@@ -11,6 +11,9 @@ import { HistorySetList } from './HistorySetList';
 import { LazyRender } from '../../ui/LazyRender';
 import { ExerciseAsset } from '../../../utils/data/exerciseAssets';
 import type { TooltipState } from './HistoryTooltipPortal';
+import type { WorkoutSet } from '../../../types';
+import type { TrainingLevel } from '../../../utils/muscle/hypertrophy/muscleParams';
+import { calculateRepProfile, getExerciseType, calculateTypicalWeightJump, buildExerciseProgressionProfile } from '../../../utils/analysis/userProfile';
 
 interface HistoryExerciseCardProps {
   group: GroupedExercise;
@@ -23,6 +26,8 @@ interface HistoryExerciseCardProps {
   exerciseBests: Map<string, ExerciseBestEvent[]>;
   currentBests: Map<string, number>;
   exerciseVolumePrBests: Map<string, ExerciseVolumePrEvent[]>;
+  exerciseHistoricalSets: Map<string, WorkoutSet[]>;
+  trainingLevel: TrainingLevel;
   onExerciseClick?: (exerciseName: string) => void;
   onTooltipToggle: (e: React.MouseEvent, data: any, variant: 'set' | 'macro') => void;
   onMouseEnter: (e: React.MouseEvent, data: any, variant: 'set' | 'macro') => void;
@@ -41,14 +46,40 @@ export const HistoryExerciseCard: React.FC<HistoryExerciseCardProps> = ({
   exerciseBests,
   currentBests,
   exerciseVolumePrBests,
+  exerciseHistoricalSets,
+  trainingLevel,
   onExerciseClick,
   onTooltipToggle,
   onMouseEnter,
   onClearTooltip,
   setTooltip,
 }) => {
-  const insights = analyzeSetProgression(group.sets);
-  const macroInsight = analyzeProgression(group.sets);
+  const userProfileContext = useMemo(() => {
+    const historicalSets = exerciseHistoricalSets.get(group.exerciseName) || [];
+    const repProfile = calculateRepProfile(historicalSets);
+    const isCompound = getExerciseType(group.exerciseName, assetsMap);
+    const typicalWeightJump = calculateTypicalWeightJump(historicalSets, weightUnit);
+    const progressionProfile = buildExerciseProgressionProfile(historicalSets, weightUnit, isCompound);
+    
+    return {
+      repProfile,
+      isCompound,
+      typicalWeightJump,
+      progressionProfile,
+    };
+  }, [exerciseHistoricalSets, group.exerciseName, assetsMap, weightUnit]);
+
+  const insights = analyzeSetProgression(group.sets, {
+    repProfile: userProfileContext.repProfile,
+    trainingLevel: trainingLevel,
+    isCompound: userProfileContext.isCompound,
+  });
+  const macroInsight = analyzeProgression(group.sets, undefined, {
+    typicalWeightJump: userProfileContext.typicalWeightJump,
+    weightUnit: weightUnit,
+    isCompound: userProfileContext.isCompound,
+    progressionProfile: userProfileContext.progressionProfile,
+  });
 
   const exerciseBest = currentBests.get(group.exerciseName) || 0;
   const prEventsForSession = (exerciseBests.get(group.exerciseName) || []).filter((e) => e.sessionKey === sessionKey);
@@ -100,20 +131,17 @@ export const HistoryExerciseCard: React.FC<HistoryExerciseCardProps> = ({
         <HistoryExerciseHeader
           group={group}
           asset={asset}
-          macroInsight={macroInsight}
           sparklineData={sparklineData}
           exerciseBest={exerciseBest}
           weightUnit={weightUnit}
           onExerciseClick={onExerciseClick}
-          onTooltipToggle={onTooltipToggle}
-          onMouseEnter={onMouseEnter}
-          onClearTooltip={onClearTooltip}
         />
 
         <div className="flex gap-4 flex-1 items-stretch">
           <HistorySetList
             group={group}
             insights={insights}
+            macroInsight={macroInsight}
             prEventsForSession={prEventsForSession}
             volPrEvent={volPrEvent}
             volPrAnchorIndex={volPrAnchorIndex}

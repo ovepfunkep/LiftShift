@@ -1,7 +1,6 @@
 import type { AnalysisResult } from '../../../types';
 import { roundTo } from '../../format/formatters';
-import { pickDeterministic } from '../common/messageVariations';
-import { getSetCommentary } from '../setCommentary/setCommentaryLibrary';
+import { resolveSetCommentary } from '../setCommentary/setCommentaryLibrary';
 import { calculatePercentChange } from './masterAlgorithmMath';
 import { buildStructured, line } from './masterAlgorithmTooltips';
 import { createAnalysisResult } from './masterAlgorithmResults';
@@ -26,8 +25,8 @@ export const analyzeWeightDecrease = (
   const seedBase = `${transition}|${weightChangePct}|${currReps}|${expectedLabel}`;
 
   if (currReps >= expected.min) {
-    const commentary = getSetCommentary('weightDecrease_met', seedBase, { pct, currReps });
-    const whyLines = commentary.whyLines || [];
+    const commentary = resolveSetCommentary('weightDecrease_met', seedBase, { pct, currReps }, { whyCount: 2 });
+    const whyLines = commentary.whyLines;
     return createAnalysisResult(
       transition,
       'success',
@@ -35,19 +34,24 @@ export const analyzeWeightDecrease = (
       volChangePct,
       currReps,
       expectedLabel,
-      pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
-      pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
+      commentary.shortMessage,
+      commentary.tooltip,
       buildStructured(`${pct}% weight`, 'down', [
-        line(whyLines[0], 'gray'),
-        line(`Expected: ${expectedLabel} reps`, 'gray'),
-        line(whyLines[1], 'gray')
+        line(whyLines[0] ?? 'Weight reduction restored expected output', 'gray'),
+        line(`Expected: ${expectedLabel} reps, actual: ${currReps} reps`, 'gray'),
+        line(whyLines[1] ?? 'Adjustment size matched current set fatigue', 'gray')
       ])
     );
   }
 
   if (currReps >= expectedTarget - 3) {
-    const commentary = getSetCommentary('weightDecrease_slightlyBelow', seedBase, { pct, currReps, expectedLabel });
-    const whyLines = commentary.whyLines || [];
+    const commentary = resolveSetCommentary(
+      'weightDecrease_slightlyBelow',
+      seedBase,
+      { pct, currReps, expectedLabel },
+      { whyCount: 2 }
+    );
+    const whyLines = commentary.whyLines;
     return createAnalysisResult(
       transition,
       'info',
@@ -55,23 +59,28 @@ export const analyzeWeightDecrease = (
       volChangePct,
       currReps,
       expectedLabel,
-      pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
-      pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
+      commentary.shortMessage,
+      commentary.tooltip,
       buildStructured(
         `${pct}% weight`,
         'down',
         [
-          line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'gray'),
-          line(`Expected: ${expectedLabel} reps`, 'gray'),
-          line(whyLines[1], 'gray'),
+          line(whyLines[0] ?? 'You recovered some output, but are still below target', 'gray'),
+          line(`Expected: ${expectedLabel} reps, actual: ${currReps} reps`, 'gray'),
+          line(whyLines[1] ?? 'Current fatigue still needs a slightly deeper reset', 'gray'),
         ]
       )
     );
   }
 
-  const commentary = getSetCommentary('weightDecrease_significantlyBelow', seedBase, { pct, currReps, expectedLabel });
-  const whyLines = commentary.whyLines || [];
-  const improveLines = commentary.improveLines || [];
+  const commentary = resolveSetCommentary(
+    'weightDecrease_significantlyBelow',
+    seedBase,
+    { pct, currReps, expectedLabel },
+    { whyCount: 2, improveCount: 2 }
+  );
+  const whyLines = commentary.whyLines;
+  const improveLines = commentary.improveLines;
   return createAnalysisResult(
     transition,
     'warning',
@@ -79,17 +88,20 @@ export const analyzeWeightDecrease = (
     volChangePct,
     currReps,
     expectedLabel,
-    pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
-    pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
+    commentary.shortMessage,
+    commentary.tooltip,
     buildStructured(
       `${pct}% weight`,
       'down',
       [
-        line(whyLines[0].replace('{currReps}', String(currReps)).replace('{expectedLabel}', expectedLabel), 'gray'),
-        line(`Expected: ${expectedLabel} reps`, 'gray'),
-        line(whyLines[1], 'gray'),
+        line(whyLines[0] ?? 'Even after reducing load, output is still far below target', 'gray'),
+        line(`Expected: ${expectedLabel} reps, actual: ${currReps} reps`, 'gray'),
+        line(whyLines[1] ?? 'This set likely reflects high in-session fatigue right now', 'gray'),
       ],
-      [line(improveLines[0], 'gray'), line(improveLines[1], 'gray')]
+      [
+        line(improveLines[0] ?? 'Reduce load further for the next attempt', 'gray'),
+        line(improveLines[1] ?? 'Restore rep quality first, then build load back gradually', 'gray'),
+      ]
     )
   );
 };

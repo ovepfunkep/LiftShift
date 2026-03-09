@@ -1,7 +1,6 @@
 import type { AnalysisResult, TooltipLine } from '../../../types';
 import { roundTo } from '../../format/formatters';
-import { pickDeterministic } from '../common/messageVariations';
-import { getSetCommentary } from '../setCommentary/setCommentaryLibrary';
+import { resolveSetCommentary } from '../setCommentary/setCommentaryLibrary';
 import { DROP_THRESHOLD_MILD, DROP_THRESHOLD_MODERATE } from './masterAlgorithmConstants';
 import { buildStructured, line } from './masterAlgorithmTooltips';
 import { createAnalysisResult } from './masterAlgorithmResults';
@@ -18,8 +17,8 @@ export const analyzeSameWeight = (
   const seedBase = `${transition}|${prevReps}|${currReps}`;
 
   if (repDiff > 0) {
-    const commentary = getSetCommentary('sameWeight_repsIncreased', seedBase, { diff: repDiff });
-    const whyLines = commentary.whyLines || [];
+    const commentary = resolveSetCommentary('sameWeight_repsIncreased', seedBase, { diff: repDiff }, { whyCount: 2 });
+    const whyLines = commentary.whyLines;
     return createAnalysisResult(
       transition,
       'success',
@@ -27,15 +26,19 @@ export const analyzeSameWeight = (
       repDropPct,
       currReps,
       `${prevReps}`,
-      pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
-      pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
-      buildStructured(`+${repDiff} reps`, 'up', [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')])
+      commentary.shortMessage,
+      commentary.tooltip,
+      buildStructured(`+${repDiff} reps`, 'up', [
+        line(whyLines[0] ?? `Reps increased by ${repDiff} at the same load`, 'gray'),
+        line(`Expected: ${prevReps} reps, actual: ${currReps} reps`, 'gray'),
+        line(whyLines[1] ?? 'Set pacing and rest likely improved on this transition', 'gray'),
+      ])
     );
   }
 
   if (repDiff === 0) {
-    const commentary = getSetCommentary('sameWeight_repsSame', seedBase, { reps: currReps });
-    const whyLines = commentary.whyLines || [];
+    const commentary = resolveSetCommentary('sameWeight_repsSame', seedBase, { reps: currReps }, { whyCount: 2 });
+    const whyLines = commentary.whyLines;
     return createAnalysisResult(
       transition,
       'success',
@@ -43,9 +46,13 @@ export const analyzeSameWeight = (
       0,
       currReps,
       `${prevReps}`,
-      pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
-      pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
-      buildStructured('= reps', 'same', [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')])
+      commentary.shortMessage,
+      commentary.tooltip,
+      buildStructured('= reps', 'same', [
+        line(whyLines[0] ?? `Reps held steady at ${currReps}`, 'gray'),
+        line(`Expected: ${prevReps} reps, actual: ${currReps} reps`, 'gray'),
+        line(whyLines[1] ?? 'Pacing and rest are consistent between these sets', 'gray'),
+      ])
     );
   }
 
@@ -53,8 +60,13 @@ export const analyzeSameWeight = (
   const dropPctAbs = Math.abs(repDropPct);
 
   if (dropPctAbs <= DROP_THRESHOLD_MILD) {
-    const commentary = getSetCommentary('sameWeight_dropMild', seedBase, { dropAbs, dropPct: roundTo(dropPctAbs, 0) });
-    const whyLines = commentary.whyLines || [];
+    const commentary = resolveSetCommentary(
+      'sameWeight_dropMild',
+      seedBase,
+      { dropAbs, dropPct: roundTo(dropPctAbs, 0) },
+      { whyCount: 2 }
+    );
+    const whyLines = commentary.whyLines;
     return createAnalysisResult(
       transition,
       'info',
@@ -62,20 +74,29 @@ export const analyzeSameWeight = (
       repDropPct,
       currReps,
       `${prevReps}`,
-      pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
-      pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
-      buildStructured(`-${dropAbs} reps`, 'down', [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')])
+      commentary.shortMessage,
+      commentary.tooltip,
+      buildStructured(`-${dropAbs} reps`, 'down', [
+        line(whyLines[0] ?? `Reps dropped by ${dropAbs}, which is within normal fatigue`, 'gray'),
+        line(`Expected: ${prevReps} reps, actual: ${currReps} reps`, 'gray'),
+        line(whyLines[1] ?? 'This pattern is common as fatigue accumulates across sets', 'gray'),
+      ])
     );
   }
 
   if (dropPctAbs <= DROP_THRESHOLD_MODERATE) {
-    const commentary = getSetCommentary('sameWeight_dropModerate', seedBase, { dropAbs, dropPct: roundTo(dropPctAbs, 0) });
-    const whyLines = commentary.whyLines || [];
-    const improveLines = commentary.improveLines || [];
+    const commentary = resolveSetCommentary(
+      'sameWeight_dropModerate',
+      seedBase,
+      { dropAbs, dropPct: roundTo(dropPctAbs, 0) },
+      { whyCount: isAfterFirstWorkingSet ? 1 : 2, improveCount: 2 }
+    );
+    const whyLines = commentary.whyLines;
+    const improveLines = commentary.improveLines;
 
     const why: TooltipLine[] = isAfterFirstWorkingSet
-      ? [line(whyLines[0], 'gray')]
-      : [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')];
+      ? [line(whyLines[0], 'gray'), line(`Expected: ${prevReps} reps, actual: ${currReps} reps`, 'gray')]
+      : [line(whyLines[0], 'gray'), line(`Expected: ${prevReps} reps, actual: ${currReps} reps`, 'gray'), line(whyLines[1], 'gray')];
 
     return createAnalysisResult(
       transition,
@@ -84,24 +105,32 @@ export const analyzeSameWeight = (
       repDropPct,
       currReps,
       `${prevReps}`,
-      pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
-      pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
+      commentary.shortMessage,
+      commentary.tooltip,
       buildStructured(
         `-${dropAbs} reps`,
         'down',
         why,
-        [line(improveLines[0], 'gray'), line(improveLines[1], 'gray')]
+        [
+          line(improveLines[0] ?? 'Extend rest slightly before the next hard set', 'gray'),
+          line(improveLines[1] ?? 'Aim to keep rep loss tighter on the next set', 'gray'),
+        ]
       )
     );
   }
 
-  const commentary = getSetCommentary('sameWeight_dropSevere', seedBase, { dropAbs, dropPct: roundTo(dropPctAbs, 0) });
-  const whyLines = commentary.whyLines || [];
-  const improveLines = commentary.improveLines || [];
+  const commentary = resolveSetCommentary(
+    'sameWeight_dropSevere',
+    seedBase,
+    { dropAbs, dropPct: roundTo(dropPctAbs, 0) },
+    { whyCount: 2, improveCount: 2 }
+  );
+  const whyLines = commentary.whyLines;
+  const improveLines = commentary.improveLines;
 
   const why: TooltipLine[] = isAfterFirstWorkingSet
-    ? [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')]
-    : [line(whyLines[0], 'gray'), line(whyLines[1], 'gray')];
+    ? [line(whyLines[0], 'gray'), line(`Expected: ${prevReps} reps, actual: ${currReps} reps`, 'gray'), line(whyLines[1], 'gray')]
+    : [line(whyLines[0], 'gray'), line(`Expected: ${prevReps} reps, actual: ${currReps} reps`, 'gray'), line(whyLines[1], 'gray')];
 
   return createAnalysisResult(
     transition,
@@ -110,13 +139,16 @@ export const analyzeSameWeight = (
     repDropPct,
     currReps,
     `${prevReps}`,
-    pickDeterministic(`${seedBase}|short`, commentary.shortMessages),
-    pickDeterministic(`${seedBase}|tooltip`, commentary.tooltips),
+    commentary.shortMessage,
+    commentary.tooltip,
     buildStructured(
       `-${dropAbs} reps`,
       'down',
       why,
-      [line(improveLines[0], 'gray'), line(improveLines[1], 'gray')]
+      [
+        line(improveLines[0] ?? 'Reduce load or increase rest to restore output', 'gray'),
+        line(improveLines[1] ?? 'Prioritize rep quality over grinding through breakdown', 'gray'),
+      ]
     )
   );
 };

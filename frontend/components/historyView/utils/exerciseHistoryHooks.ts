@@ -4,6 +4,56 @@ import type { WorkoutSet } from '../../../types';
 import { isWarmupSet } from '../../../utils/analysis/masterAlgorithm';
 import { getSessionKey } from '../../../utils/date/dateUtils';
 
+export interface HistoricalSetsForExercise {
+  exerciseName: string;
+  sets: WorkoutSet[];
+}
+
+export const useExerciseHistoricalSets = (data: WorkoutSet[]) => {
+  return useMemo(() => {
+    const exerciseSessions = new Map<string, WorkoutSet[]>();
+
+    for (const set of data) {
+      if (!set.parsedDate) continue;
+      if (!Number.isFinite(set.weight_kg) || !Number.isFinite(set.reps)) continue;
+      if ((set.weight_kg || 0) <= 0 || (set.reps || 0) <= 0) continue;
+      const sessionKey = getSessionKey(set);
+      if (!sessionKey) continue;
+      const exercise = set.exercise_title;
+
+      if (!exerciseSessions.has(exercise)) {
+        exerciseSessions.set(exercise, []);
+      }
+      exerciseSessions.get(exercise)!.push(set);
+    }
+
+    const result = new Map<string, WorkoutSet[]>();
+    exerciseSessions.forEach((sets, exerciseName) => {
+      const groupedBySession = new Map<string, WorkoutSet[]>();
+      for (const set of sets) {
+        const sessionKey = getSessionKey(set);
+        if (!sessionKey) continue;
+        if (!groupedBySession.has(sessionKey)) {
+          groupedBySession.set(sessionKey, []);
+        }
+        groupedBySession.get(sessionKey)!.push(set);
+      }
+
+      const sessions = Array.from(groupedBySession.entries())
+        .sort((a, b) => {
+          const aDate = a[1][0]?.parsedDate?.getTime() ?? 0;
+          const bDate = b[1][0]?.parsedDate?.getTime() ?? 0;
+          return bDate - aDate;
+        })
+        .flatMap(([, sessionSets]) => sessionSets);
+
+      result.set(exerciseName, sessions);
+    });
+
+    return result;
+  }, [data]);
+};
+
 export const useExerciseVolumeHistory = (data: WorkoutSet[]) => {
   return useMemo(() => {
     const exerciseHistory = new Map<string, { date: Date; volume: number; sessionKey: string }[]>();

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Trophy } from 'lucide-react';
 import { ExerciseAsset } from '../../../utils/data/exerciseAssets';
 import { convertWeight } from '../../../utils/format/units';
 import type { WeightUnit } from '../../../utils/storage/localStorage';
@@ -7,33 +6,23 @@ import { FANCY_FONT } from '../../../utils/ui/uiConstants';
 import { ExerciseThumbnail } from '../../common/ExerciseThumbnail';
 import { Sparkline } from './HistorySparkline';
 import type { GroupedExercise } from '../utils/historySessions';
-import type { SetWisdom } from '../../../types';
-import { getWisdomColor } from '../../../utils/analysis/masterAlgorithm';
 
 interface HistoryExerciseHeaderProps {
   group: GroupedExercise;
   asset?: ExerciseAsset;
-  macroInsight?: SetWisdom | null;
   sparklineData: number[];
   exerciseBest: number;
   weightUnit: WeightUnit;
   onExerciseClick?: (exerciseName: string) => void;
-  onTooltipToggle: (e: React.MouseEvent, data: any, variant: 'set' | 'macro') => void;
-  onMouseEnter: (e: React.MouseEvent, data: any, variant: 'set' | 'macro') => void;
-  onClearTooltip: () => void;
 }
 
 export const HistoryExerciseHeader: React.FC<HistoryExerciseHeaderProps> = ({
   group,
   asset,
-  macroInsight,
   sparklineData,
   exerciseBest,
   weightUnit,
   onExerciseClick,
-  onTooltipToggle,
-  onMouseEnter,
-  onClearTooltip,
 }) => {
   return (
     <div
@@ -55,19 +44,6 @@ export const HistoryExerciseHeader: React.FC<HistoryExerciseHeaderProps> = ({
         >
           {group.exerciseName}
         </h4>
-
-        {macroInsight && (
-          <button
-            type="button"
-            onClick={(e) => onTooltipToggle(e, macroInsight, 'macro')}
-            onMouseEnter={(e) => onMouseEnter(e, macroInsight, 'macro')}
-            onMouseLeave={onClearTooltip}
-            className={`p-1.5 rounded-lg cursor-help flex-shrink-0 ${getWisdomColor(macroInsight.type)} animate-in zoom-in duration-300`}
-            aria-label={macroInsight.message}
-          >
-            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </button>
-        )}
       </div>
 
       <div className="min-w-0 col-start-2 row-start-2 sm:flex-1">

@@ -12,6 +12,8 @@ import { formatRestDuration, formatWorkoutDuration, getSessionDurationMs, isSame
 import type { ExerciseBestEvent, ExerciseVolumePrEvent } from '../utils/historyViewTypes';
 import type { TooltipState } from './HistoryTooltipPortal';
 import { ExerciseAsset } from '../../../utils/data/exerciseAssets';
+import type { WorkoutSet } from '../../../types';
+import type { TrainingLevel } from '../../../utils/muscle/hypertrophy/muscleParams';
 
 interface HistorySessionBlockProps {
   session: Session;
@@ -30,6 +32,8 @@ interface HistorySessionBlockProps {
   exerciseBests: Map<string, ExerciseBestEvent[]>;
   currentBests: Map<string, number>;
   exerciseVolumePrBests: Map<string, ExerciseVolumePrEvent[]>;
+  exerciseHistoricalSets: Map<string, WorkoutSet[]>;
+  trainingLevel: TrainingLevel;
   onExerciseClick?: (exerciseName: string) => void;
   onTooltipToggle: (e: React.MouseEvent, data: any, variant: 'set' | 'macro') => void;
   onMouseEnter: (e: React.MouseEvent, data: any, variant: 'set' | 'macro') => void;
@@ -54,6 +58,8 @@ export const HistorySessionBlock: React.FC<HistorySessionBlockProps> = ({
   exerciseBests,
   currentBests,
   exerciseVolumePrBests,
+  exerciseHistoricalSets,
+  trainingLevel,
   onExerciseClick,
   onTooltipToggle,
   onMouseEnter,
@@ -126,6 +132,8 @@ export const HistorySessionBlock: React.FC<HistorySessionBlockProps> = ({
             exerciseBests={exerciseBests}
             currentBests={currentBests}
             exerciseVolumePrBests={exerciseVolumePrBests}
+            exerciseHistoricalSets={exerciseHistoricalSets}
+            trainingLevel={trainingLevel}
             onExerciseClick={onExerciseClick}
             onTooltipToggle={onTooltipToggle}
             onMouseEnter={onMouseEnter}
