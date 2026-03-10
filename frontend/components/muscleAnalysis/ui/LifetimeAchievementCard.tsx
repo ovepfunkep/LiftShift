@@ -11,6 +11,7 @@ import {
   getTierColor,
   type TierDef,
 } from '../../../utils/training/tierUtils';
+import { useIsMobile } from '../../insights/useIsMobile';
 
 /** Format weeks to human-readable string */
 function formatEta(weeks: number | null): string {
@@ -65,14 +66,59 @@ const TierIcon: React.FC<{ tierKey: string; className?: string }> = ({
   return <Icon className={className} />;
 };
 
-const ProgressBar: React.FC<{ percent: number; color: string }> = ({ percent, color }) => (
-  <div className="h-2.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(100, 100, 100, 0.1)' }}>
-    <div
-      className="h-full rounded-full transition-all duration-500 ease-out"
-      style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: color }}
-    />
-  </div>
-);
+const ProgressBar: React.FC<{ percent: number; color: string }> = ({ percent, color }) => {
+  const isMobile = useIsMobile(768);
+  const TOTAL_PILLS = isMobile ? 15 : 30;
+  
+  const pillData = useMemo(() => 
+    Array.from({ length: TOTAL_PILLS }).map(() => {
+      const flexGrow = Math.floor(Math.random() * 3) + 1;
+      return {
+        flexGrow,
+        marginLeft: flexGrow > 1 ? '1px' : '2px',
+      };
+    }),
+    [TOTAL_PILLS]
+  );
+  
+  const totalFlex = pillData.reduce((sum, p) => sum + p.flexGrow, 0);
+  const filledFlex = (percent / 100) * totalFlex;
+  
+  let accumulatedFlex = 0;
+  
+  return (
+    <div className="flex items-center h-2.5">
+      {pillData.map((pill, idx) => {
+        const pillStart = accumulatedFlex;
+        const pillEnd = accumulatedFlex + pill.flexGrow;
+        const fillPercent = Math.max(0, Math.min(100, ((filledFlex - pillStart) / pill.flexGrow) * 100));
+        accumulatedFlex += pill.flexGrow;
+        
+        return (
+          <div
+            key={idx}
+            className="h-full rounded-sm relative overflow-hidden"
+            style={{
+              flexGrow: pill.flexGrow,
+              marginLeft: idx === 0 ? 0 : pill.marginLeft,
+              backgroundColor: 'rgba(100, 100, 100, 0.15)',
+            }}
+          >
+            {fillPercent > 0 && (
+              <div
+                className="absolute top-0 left-0 h-full rounded-sm"
+                style={{
+                  width: `${fillPercent}%`,
+                  backgroundColor: color,
+                }}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export const LifetimeAchievementCard: React.FC<LifetimeAchievementCardProps> = ({
   data,

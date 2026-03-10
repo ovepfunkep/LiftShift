@@ -7,6 +7,18 @@ import { HEADLESS_MUSCLE_NAMES } from '../../../utils/muscle/mapping';
 import type { WeeklySetsWindow } from '../../../utils/muscle/analytics';
 import { getVolumeZoneColor, getVolumeZone } from '../../../utils/muscle/hypertrophy/muscleParams';
 import { weeklyStimulusFromThresholds } from '../../../utils/muscle/hypertrophy/hypertrophyCalculations';
+import { useIsMobile } from '../../insights/useIsMobile';
+
+const usePillSizing = (count: number) => useMemo(() => 
+  Array.from({ length: count }).map(() => {
+    const flexGrow = Math.floor(Math.random() * 3) + 1;
+    return {
+      flexGrow,
+      marginLeft: flexGrow > 1 ? '1px' : '2px',
+    };
+  }),
+  [count]
+);
 
 interface CustomMuscleTooltipProps {
   active?: boolean;
@@ -70,21 +82,55 @@ const LEGEND_MAX_DISPLAY = 41; // Set a reasonable max for legend display - can 
 // Zone labels now imported from shared utility in muscleParams.ts
 
 /** Progress bar for weekly possible gains */
-const PossibleGainsBar: React.FC<{ percent: number; color: string }> = ({ percent, color }) => {
+const PossibleGainsBar: React.FC<{ percent: number; thresholds: { mv: number; mev: number; mrv: number; maxv: number }; legendMax: number }> = ({ percent, thresholds, legendMax }) => {
+  const isMobile = useIsMobile(768);
+  const TOTAL_PILLS = isMobile ? 25 : 50;
+  const pillData = usePillSizing(TOTAL_PILLS);
+  const totalFlex = pillData.reduce((sum, p) => sum + p.flexGrow, 0);
+  const filledFlex = (percent / 100) * totalFlex;
+  
+  let accumulatedFlex = 0;
+  
   return (
-    <div className="relative flex items-center gap-2 text-[9px]">
-      <div className="flex-1 h-4 rounded-md overflow-hidden relative flex" style={{ backgroundColor: 'rgba(100,116,139,0.15)' }}>
-        <div 
-          className="h-full rounded-md transition-all duration-500 ease-out"
-          style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: color }}
-        />
-        <span 
-          className="absolute inset-0 flex items-center justify-center text-[8px] font-bold"
-          style={{ color: '#fff', textShadow: '0 0 1px #000, 0 0 1px #000, 0 0 1px #000' }}
-        >
-          {percent}% possible gains
-        </span>
-      </div>
+    <div className="relative flex items-center text-[9px]">
+      {Array.from({ length: TOTAL_PILLS }).map((_, idx) => {
+        const position = (idx / (TOTAL_PILLS - 1)) * legendMax;
+        const color = getVolumeZoneColor(position, thresholds, legendMax);
+        const { flexGrow, marginLeft } = pillData[idx];
+        
+        const pillStart = accumulatedFlex;
+        const pillEnd = accumulatedFlex + flexGrow;
+        const fillPercent = Math.max(0, Math.min(100, ((filledFlex - pillStart) / flexGrow) * 100));
+        accumulatedFlex += flexGrow;
+        
+        return (
+          <div
+            key={idx}
+            className="h-4 rounded-sm relative overflow-hidden transition-all duration-300"
+            style={{
+              flexGrow,
+              marginLeft: idx === 0 ? 0 : marginLeft,
+              backgroundColor: 'rgba(100, 100, 100, 0.15)',
+            }}
+          >
+            {fillPercent > 0 && (
+              <div
+                className="absolute top-0 left-0 h-full rounded-sm"
+                style={{
+                  width: `${fillPercent}%`,
+                  backgroundColor: color,
+                }}
+              />
+            )}
+          </div>
+        );
+      })}
+      <span 
+        className="absolute inset-0 flex items-center justify-center text-[8px] font-bold"
+        style={{ color: '#fff', textShadow: '0 0 1px #000, 0 0 1px #000, 0 0 1px #000' }}
+      >
+        {percent}% possible gains
+      </span>
     </div>
   );
 };
@@ -221,6 +267,47 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
     };
   }, [zones, legendMax, showOverdrive]);
 
+  const isMobileLegend = useIsMobile(768);
+  const TOTAL_PILLS = isMobileLegend ? 25 : 50;
+  const legendPillSizing = usePillSizing(TOTAL_PILLS);
+
+  const pillData = useMemo(() => {
+    const pills: Array<{ filledColor: string; flexGrow: number; marginLeft: string; fillPercent: number }> = [];
+    const totalFlex = legendPillSizing.reduce((sum, p) => sum + p.flexGrow, 0);
+    const filledFlex = arrowPosition !== null ? (arrowPosition / 100) * totalFlex : -1;
+    
+    let accumulatedFlex = 0;
+    
+    for (let i = 0; i < TOTAL_PILLS; i++) {
+      const position = (i / (TOTAL_PILLS - 1)) * legendMax;
+      const color = getVolumeZoneColor(position, zones, legendMax);
+      const { flexGrow, marginLeft } = legendPillSizing[i];
+      
+      const pillStart = accumulatedFlex;
+      const pillEnd = accumulatedFlex + flexGrow;
+      let fillPercent = 100;
+      
+      if (filledFlex >= 0) {
+        if (pillStart >= filledFlex) {
+          fillPercent = 0;
+        } else if (pillEnd > filledFlex) {
+          fillPercent = ((filledFlex - pillStart) / flexGrow) * 100;
+        }
+      }
+      
+      accumulatedFlex += flexGrow;
+      
+      pills.push({ 
+        filledColor: color,
+        flexGrow,
+        marginLeft: i === 0 ? '0' : marginLeft,
+        fillPercent,
+      });
+    }
+    
+    return pills;
+  }, [legendMax, zones, arrowPosition, legendPillSizing, TOTAL_PILLS]);
+
   return (
     <div id="all-muscles-graph" className="bg-black/70 rounded-xl border border-slate-700/50 overflow-hidden flex flex-col h-full min-h-0">
       <div className="bg-black/70 p-3 flex items-center justify-between flex-shrink-0 gap-2">
@@ -266,71 +353,35 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
             </div>
           )}
           
-          {/* Gradient bar with inflection markers */}
-          <div className="relative flex items-center gap-2 text-[9px] pt-6">
-            <div className="flex-1 h-4 px-1 rounded-md overflow-hidden relative flex" style={{ 
-              background: `linear-gradient(to right, 
-                ${legendColors.atMv} 0%,
-                ${legendColors.atMev} ${(Math.min(zones.mev, legendMax) / legendMax) * 100}%,
-                ${legendColors.atMrv} ${(Math.min(zones.mrv, legendMax) / legendMax) * 100}%,
-                ${legendColors.atMaxv} ${(Math.min(zones.maxv, legendMax) / legendMax) * 100}%,
-                ${legendColors.atMaxv} ${(Math.min(zones.maxv + 0.1, legendMax) / legendMax) * 100}%,
-                ${legendColors.atMaxvPlus10} ${(Math.min(zones.maxv + 10, legendMax) / legendMax) * 100}%,
-                ${legendColors.atMaxDisplay} 100%)`
-            }}>
-              {/* Zone segments with labels inside */}
-              <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium" style={{ 
-                width: `${(Math.min(zones.mv, legendMax) / legendMax) * 100}%`,
-                background: 'transparent',
-                color: '#fff'
-              }}>
-                <span style={{ textShadow: '0 0 1px #000, 0 0 1px #000, 0 0 1px #000' }}>Activating</span>
+          {/* Pill-style volume zone visualization */}
+          <div className="relative flex items-center text-[9px] pt-6">
+            {pillData.map((pill, idx) => (
+              <div
+                key={idx}
+                className="h-4 rounded-sm relative overflow-hidden"
+                style={{
+                  flexGrow: pill.flexGrow,
+                  marginLeft: pill.marginLeft,
+                  backgroundColor: 'rgba(100, 100, 100, 0.15)',
+                }}
+              >
+                {pill.fillPercent > 0 && (
+                  <div
+                    className="absolute top-0 left-0 h-full rounded-sm"
+                    style={{
+                      width: `${pill.fillPercent}%`,
+                      backgroundColor: pill.filledColor,
+                    }}
+                  />
+                )}
               </div>
-              <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium" style={{ 
-                width: `${(Math.min(zones.mev, legendMax) / legendMax) * 100}%`,
-                background: 'transparent',
-                color: '#fff'
-              }}>
-                <span style={{ textShadow: '0 0 1px #000, 0 0 1px #000, 0 0 1px #000' }}>Stimulating</span>
-              </div>
-              <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium" style={{ 
-                width: `${(Math.min(zones.mrv, legendMax) / legendMax) * 100}%`,
-                background: 'transparent',
-                color: '#fff'
-              }}>
-                <span style={{ textShadow: '0 0 1px #000, 0 0 1px #000, 0 0 1px #000' }}>Amplifying</span>
-              </div>
-              {legendColors.showOverdrive ? (
-                <>
-                  <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium" style={{ 
-                    width: `${(Math.min(zones.maxv, legendMax) / legendMax) * 100}%`,
-                    background: 'transparent',
-                    color: '#fff'
-                  }}>
-                    <span style={{ textShadow: '0 0 1px #000, 0 0 1px #000, 0 0 1px #000' }}>Maximizing</span>
-                  </div>
-                  <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium flex-1" style={{ 
-                    background: 'transparent',
-                    color: '#fff'
-                  }}>
-                    <span style={{ textShadow: '0 0 1px #000, 0 0 1px #000, 0 0 1px #000' }}>Overreaching</span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center justify-center text-[6px] sm:text-[7px] font-medium flex-1" style={{ 
-                  background: 'transparent',
-                  color: '#fff'
-                }}>
-                  <span style={{ textShadow: '0 0 1px #000, 0 0 1px #000, 0 0 1px #000' }}>Maximizing</span>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
         </div>
         
         {stimulusPercent !== null && (
           <div className="relative w-full max-w-md mt-2">
-            <PossibleGainsBar percent={stimulusPercent} color={currentColor ?? '#9ca3af'} />
+            <PossibleGainsBar percent={stimulusPercent} thresholds={volumeThresholds} legendMax={legendMax} />
           </div>
         )}
       </div>
@@ -396,8 +447,8 @@ export const MuscleAnalysisGraphPanel: React.FC<MuscleAnalysisGraphPanelProps> =
               <Area
                 type="monotone"
                 dataKey="sets"
-                stroke="#94a3b8"
-                strokeWidth={2}
+                stroke="#175c0f"
+                strokeWidth={0.5}
                 fill="none"
                 isAnimationActive={false}
               />

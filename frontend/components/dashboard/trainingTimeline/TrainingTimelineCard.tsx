@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import {
   Sprout, Leaf, TreePine,
   Hammer, Pickaxe, Gem,
@@ -14,6 +14,7 @@ import {
 } from '../../../utils/training/trainingTimeline';
 import { useTooltip, Tooltip } from '../../ui/Tooltip';
 import type { TrainingLevel } from '../../../utils/muscle/hypertrophy/muscleParams';
+import { useIsMobile } from '../../insights/useIsMobile';
 
 // ---------------------------------------------------------------------------
 // Icon mapping – distinct icon per checkpoint key
@@ -78,22 +79,60 @@ const getSegmentFill = (
  */
 const SegmentLine: React.FC<{ 
   fillPercent: number;
-}> = ({ fillPercent }) => (
-  <div 
-    className="flex-1 h-1.5 rounded-full overflow-hidden mx-1 opacity-70" 
-    style={{ 
-      backgroundColor: 'rgba(100, 100, 100, 0.15)',
-    }}
-  >
-    <div
-      className="h-full rounded-full transition-all duration-700 ease-out"
-      style={{
-        width: `${Math.min(fillPercent, 100)}%`,
-        backgroundColor: '#34d399', // emerald-400
-      }}
-    />
-  </div>
-);
+}> = ({ fillPercent }) => {
+  const isMobile = useIsMobile(768);
+  const TOTAL_PILLS = isMobile ? 8 : 15;
+  const emeraldColor = '#34d399';
+  
+  const pillData = useMemo(() => 
+    Array.from({ length: TOTAL_PILLS }).map(() => {
+      const flexGrow = Math.floor(Math.random() * 3) + 1;
+      return {
+        flexGrow,
+        marginLeft: flexGrow > 1 ? '1px' : '2px',
+      };
+    }),
+    [TOTAL_PILLS]
+  );
+  
+  const totalFlex = pillData.reduce((sum, p) => sum + p.flexGrow, 0);
+  const filledFlex = (fillPercent / 100) * totalFlex;
+  
+  let accumulatedFlex = 0;
+  
+  return (
+    <div className="flex items-center flex-1 h-1.5 mx-1 opacity-70">
+      {pillData.map((pill, idx) => {
+        const pillStart = accumulatedFlex;
+        const pillEnd = accumulatedFlex + pill.flexGrow;
+        const fillPct = Math.max(0, Math.min(100, ((filledFlex - pillStart) / pill.flexGrow) * 100));
+        accumulatedFlex += pill.flexGrow;
+        
+        return (
+          <div
+            key={idx}
+            className="h-full rounded-sm relative overflow-hidden"
+            style={{
+              flexGrow: pill.flexGrow,
+              marginLeft: idx === 0 ? 0 : pill.marginLeft,
+              backgroundColor: 'rgba(100, 100, 100, 0.15)',
+            }}
+          >
+            {fillPct > 0 && (
+              <div
+                className="absolute top-0 left-0 h-full rounded-sm"
+                style={{
+                  width: `${fillPct}%`,
+                  backgroundColor: emeraldColor,
+                }}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 /**
  * A single icon checkpoint node - icon only (no label).
