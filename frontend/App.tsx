@@ -7,7 +7,7 @@ import { AppLoadingOverlay } from './components/app/AppLoadingOverlay';
 import { UserPreferencesModal } from './components/modals/userPreferences/UserPreferencesModal';
 import type { OnboardingFlow } from './app/onboarding/types';
 import { getEffectiveNowFromWorkoutData } from './utils/date/dateUtils';
-import { getDataSourceChoice, getSetupComplete } from './utils/storage/dataSourceStorage';
+import { getDataSourceChoice } from './utils/storage/dataSourceStorage';
 import { clearCacheAndRestart as clearCacheAndRestartNow } from './app/state';
 import { usePrefetchHeavyViews } from './app/navigation';
 import { useStartupAutoLoad } from './app/startup';
@@ -117,9 +117,7 @@ const App: React.FC = () => {
 
   const [parsedData, setParsedData] = useState<WorkoutSet[]>([]);
   const [hasHydratedData, setHasHydratedData] = useState(false);
-  const [onboarding, setOnboarding] = useState<OnboardingFlow | null>(() => {
-    return getSetupComplete() ? null : { intent: 'initial', step: 'platform' };
-  });
+  const [onboarding, setOnboarding] = useState<OnboardingFlow | null>(null);
   const [dataSource, setDataSource] = useState(() => getDataSourceChoice());
   const [preferencesModalOpen, setPreferencesModalOpen] = useState(false);
 
@@ -275,6 +273,7 @@ const App: React.FC = () => {
     clearCsvImportError,
     clearHevyLoginError,
     clearLyfatLoginError,
+    onOpenPreferences: () => setPreferencesModalOpen(true),
   });
 
   const calendarHandlers = useCalendarSelectionHandlers({
@@ -284,7 +283,8 @@ const App: React.FC = () => {
     setCalendarOpen,
   });
 
-  const showColdStartOverlay = onboarding?.intent !== 'initial' && parsedData.length === 0 && !hasHydratedData;
+  const showColdStartOverlay =
+    onboarding != null && onboarding.intent !== 'initial' && parsedData.length === 0 && !hasHydratedData;
 
   return (
     <div
@@ -293,7 +293,6 @@ const App: React.FC = () => {
     >
       <AppShell
         onboardingIntent={onboarding?.intent ?? null}
-        onSetOnboarding={setOnboarding}
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         onOpenUpdateFlow={handleOpenUpdateFlow}
@@ -345,6 +344,33 @@ const App: React.FC = () => {
       <UserPreferencesModal
         isOpen={preferencesModalOpen}
         onClose={() => setPreferencesModalOpen(false)}
+        onSelectImportSource={(source) => {
+          clearCsvImportError();
+          clearHevyLoginError();
+          clearLyfatLoginError();
+          setPreferencesModalOpen(false);
+          const intent = dataSource != null || parsedData.length > 0 ? 'update' : 'initial';
+          if (source === 'strong') {
+            setOnboarding({ intent, step: 'strong_prefs', platform: 'strong' });
+            return;
+          }
+          if (source === 'lyfta') {
+            setOnboarding({ intent, step: 'lyfta_prefs', platform: 'lyfta' });
+            return;
+          }
+          if (source === 'other') {
+            setOnboarding({ intent, step: 'other_prefs', platform: 'other' });
+            return;
+          }
+          setOnboarding({ intent, step: 'hevy_prefs', platform: 'hevy' });
+        }}
+        onTryDemo={() => {
+          clearCsvImportError();
+          clearHevyLoginError();
+          clearLyfatLoginError();
+          setPreferencesModalOpen(false);
+          setOnboarding({ intent: 'initial', step: 'demo_prefs', platform: 'other' });
+        }}
         weightUnit={weightUnit}
         onWeightUnitChange={setWeightUnit}
         bodyMapGender={bodyMapGender}

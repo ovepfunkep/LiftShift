@@ -18,6 +18,8 @@ export type PlatformDockItem = {
 
 export type PlatformDockProps = {
   items: PlatformDockItem[];
+  /** `fixed` = bottom dock overlay; `inline` = centered in normal layout (e.g. settings modal). */
+  variant?: 'fixed' | 'inline';
   className?: string;
 };
 
@@ -109,13 +111,18 @@ function DockItem({ item, mouseX, onHoverStart, onHoverEnd, index = 0, totalItem
   );
 }
 
-export default function PlatformDock({ items, className = '' }: PlatformDockProps) {
+export default function PlatformDock({ items, variant = 'fixed', className = '' }: PlatformDockProps) {
   const mouseX = useMotionValue(Infinity);
   const [isHovered, setIsHovered] = useState(false);
   const [activeName, setActiveName] = useState<string | null>(null);
 
+  const positionClass =
+    variant === 'inline'
+      ? 'relative left-auto bottom-auto z-auto translate-x-0 w-full flex justify-center py-2'
+      : 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[100]';
+
   return (
-    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] ${className}`}>
+    <div className={`${positionClass} ${className}`}>
       <motion.div
         onMouseMove={(e) => mouseX.set(e.pageX)}
         onMouseEnter={() => setIsHovered(true)}

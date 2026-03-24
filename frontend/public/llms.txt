@@ -45,7 +45,6 @@ Comparison to other tools:
 
 Key pages:
 - https://liftshift.app/about/ - About LiftShift dashboard
-- https://liftshift.app/how-it-works/ - How the analytics dashboard works
 - https://liftshift.app/privacy/ - Privacy model for dashboard analytics
 - https://liftshift.app/faq/ - FAQ about workout analytics dashboard
 - https://liftshift.app/supported-apps/ - Supported fitness apps for dashboard

@@ -44,7 +44,7 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
       saveSetupComplete(false);
       params.setIsAnalyzing(false);
       params.setLoadingKind(null);
-      params.setOnboarding({ intent: 'initial', step: 'platform' });
+      params.setOnboarding(null);
       return;
     }
 
@@ -75,7 +75,7 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
       saveSetupComplete(false);
       params.setIsAnalyzing(false);
       params.setLoadingKind(null);
-      params.setOnboarding({ intent: 'initial', step: 'platform' });
+      params.setOnboarding(null);
     };
 
     // Unified retry wrapper

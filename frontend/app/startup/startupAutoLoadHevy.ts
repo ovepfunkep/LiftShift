@@ -50,7 +50,7 @@ export const loadHevyFromProKey = (deps: StartupAutoLoadParams, apiKey: string):
         clearHevyProApiKey();
         saveSetupComplete(false);
         deps.setHevyLoginError('Hevy data could not be parsed. Please try syncing again.');
-        deps.setOnboarding({ intent: 'initial', step: 'platform' });
+        deps.setOnboarding(null);
         return;
       }
 
@@ -63,7 +63,7 @@ export const loadHevyFromProKey = (deps: StartupAutoLoadParams, apiKey: string):
       clearHevyProApiKey();
       saveSetupComplete(false);
       deps.setHevyLoginError(getHevyErrorMessage(err));
-      deps.setOnboarding({ intent: 'initial', step: 'platform' });
+      deps.setOnboarding(null);
     })
     .finally(() => {
       deps.finishProgress(startedAt);
@@ -95,7 +95,7 @@ export const loadHevyFromToken = (
       clearHevyAuthToken();
       saveSetupComplete(false);
       deps.setHevyLoginError('Hevy data could not be parsed. Please try syncing again.');
-      deps.setOnboarding({ intent: 'initial', step: 'platform' });
+      deps.setOnboarding(null);
       return;
     }
 
@@ -142,7 +142,7 @@ export const loadHevyFromToken = (
         clearHevyAuthToken();
         saveSetupComplete(false);
         deps.setHevyLoginError(getHevyErrorMessage(err));
-        deps.setOnboarding({ intent: 'initial', step: 'platform' });
+        deps.setOnboarding(null);
         return undefined;
       }
       return attemptRefreshFallback()
@@ -151,7 +151,7 @@ export const loadHevyFromToken = (
           clearHevyAuthToken();
           saveSetupComplete(false);
           deps.setHevyLoginError(getHevyErrorMessage(err));
-          deps.setOnboarding({ intent: 'initial', step: 'platform' });
+          deps.setOnboarding(null);
           return undefined;
         });
     })
@@ -205,7 +205,7 @@ export const loadHevyFromCredentials = async (
       clearHevyAuthToken();
       saveSetupComplete(false);
       deps.setHevyLoginError('Hevy data could not be parsed. Please try syncing again.');
-      deps.setOnboarding({ intent: 'initial', step: 'platform' });
+      deps.setOnboarding(null);
       deps.finishProgress(startedAt);
       return false;
     }
@@ -221,7 +221,7 @@ export const loadHevyFromCredentials = async (
     clearHevyAuthToken();
     saveSetupComplete(false);
     deps.setHevyLoginError(getHevyErrorMessage(err));
-    deps.setOnboarding({ intent: 'initial', step: 'platform' });
+    deps.setOnboarding(null);
     deps.finishProgress(startedAt);
     return false;
   }

@@ -22,7 +22,7 @@ export const loadLyftaFromApiKey = (deps: StartupAutoLoadParams, apiKey: string)
       if (hydrated.length === 0 || hydrated.every((s) => !s.parsedDate)) {
         saveSetupComplete(false);
         deps.setLyfatLoginError('Lyfta data could not be parsed. Please try syncing again.');
-        deps.setOnboarding({ intent: 'initial', step: 'platform' });
+        deps.setOnboarding(null);
         return;
       }
 
@@ -35,7 +35,7 @@ export const loadLyftaFromApiKey = (deps: StartupAutoLoadParams, apiKey: string)
       clearLyfataApiKey();
       saveSetupComplete(false);
       deps.setLyfatLoginError(getLyfatErrorMessage(err));
-      deps.setOnboarding({ intent: 'initial', step: 'platform' });
+      deps.setOnboarding(null);
     })
     .finally(() => {
       deps.finishProgress(startedAt);

@@ -59,7 +59,7 @@ export const OnboardingDemoStep: React.FC<OnboardingDemoStepProps> = ({
         onSetCsvImportError('Failed to load demo data. Please try again.');
       }
     }}
-    onBack={() => onSetOnboarding({ intent, step: 'platform' })}
+    onBack={() => onSetOnboarding(null)}
     onClose={onClose}
   />
 );

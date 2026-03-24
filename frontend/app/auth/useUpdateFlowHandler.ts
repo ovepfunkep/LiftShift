@@ -9,6 +9,7 @@ interface UpdateFlowArgs {
   clearCsvImportError: () => void;
   clearHevyLoginError: () => void;
   clearLyfatLoginError: () => void;
+  onOpenPreferences: () => void;
 }
 
 export const useUpdateFlowHandler = ({
@@ -17,6 +18,7 @@ export const useUpdateFlowHandler = ({
   clearCsvImportError,
   clearHevyLoginError,
   clearLyfatLoginError,
+  onOpenPreferences,
 }: UpdateFlowArgs) => {
   return useCallback(() => {
     trackEvent('update_flow_open', { data_source: dataSource ?? 'unknown' });
@@ -52,6 +54,6 @@ export const useUpdateFlowHandler = ({
       setOnboarding({ intent: 'update', step: 'other_csv', platform: 'other', backStep: 'other_prefs' });
       return;
     }
-    setOnboarding({ intent: 'update', step: 'platform' });
-  }, [dataSource, clearCsvImportError, clearHevyLoginError, clearLyfatLoginError, setOnboarding]);
+    onOpenPreferences();
+  }, [dataSource, clearCsvImportError, clearHevyLoginError, clearLyfatLoginError, setOnboarding, onOpenPreferences]);
 };

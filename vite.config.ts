@@ -65,7 +65,7 @@ const servePublicIndexHtmlPlugin = () => {
     apply: 'serve' as const,
     configureServer(server: any) {
       const publicDir = path.resolve(__dirname, 'frontend/public');
-      const vikeOwnedRoutes = new Set(['how-it-works', 'features']);
+      const vikeOwnedRoutes = new Set<string>();
       server.middlewares.use((req: any, _res: any, next: any) => {
         const rawUrl = typeof req.url === 'string' ? req.url : '';
         const url = rawUrl.split('?')[0]?.split('#')[0] ?? '';

@@ -9,7 +9,8 @@ interface OnboardingPreferencesStepProps {
   intent: OnboardingFlow['intent'];
   platform: 'hevy' | 'lyfta' | 'strong' | 'other';
   nextStep: OnboardingFlow['step'];
-  backStep: OnboardingFlow['step'];
+  /** If omitted, back closes the import flow (returns to the app). */
+  backStep?: OnboardingFlow['step'];
   nextBackStep?: OnboardingFlow['step'];
   continueLabel?: string;
   bodyMapGender: BodyMapGender;
@@ -52,7 +53,13 @@ export const OnboardingPreferencesStep: React.FC<OnboardingPreferencesStepProps>
       savePreferencesConfirmed(true);
       onSetOnboarding({ intent, step: nextStep, platform, backStep: nextBackStep });
     }}
-    onBack={() => onSetOnboarding({ intent, step: backStep, platform })}
+    onBack={() => {
+      if (backStep == null) {
+        onSetOnboarding(null);
+        return;
+      }
+      onSetOnboarding({ intent, step: backStep, platform });
+    }}
     onClose={onClose}
   />
 );

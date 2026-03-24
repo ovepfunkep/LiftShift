@@ -25,7 +25,7 @@ export const loadCsvAuto = (deps: StartupAutoLoadParams, options: CsvLoadOptions
         clearCSVData();
         saveSetupComplete(false);
         deps.setCsvImportError('No workouts found in your CSV.');
-        deps.setOnboarding({ intent: 'initial', step: 'platform' });
+        deps.setOnboarding(null);
         return;
       }
 
@@ -38,7 +38,7 @@ export const loadCsvAuto = (deps: StartupAutoLoadParams, options: CsvLoadOptions
       clearCSVData();
       saveSetupComplete(false);
       deps.setCsvImportError(getErrorMessage(err));
-      deps.setOnboarding({ intent: 'initial', step: 'platform' });
+      deps.setOnboarding(null);
     })
     .finally(() => {
       deps.finishProgress(startedAt);

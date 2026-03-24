@@ -3,6 +3,7 @@ import { Settings, X } from 'lucide-react';
 import { WeightUnit, DateMode, ThemeMode, ExerciseTrendMode } from '../../../utils/storage/localStorage';
 import { BodyMapGender } from '../../bodyMap/BodyMap';
 import type { DataAgeInfo } from '../../../hooks/app';
+import type { DataSourceChoice } from '../../../utils/storage/dataSourceStorage';
 import {
   BodyMapGenderSection,
   DateModeSection,
@@ -10,10 +11,13 @@ import {
   TrendModeSection,
   WeightUnitSection,
 } from './UserPreferencesSections';
+import { UserPreferencesImportSection } from './UserPreferencesImportSection';
 
 interface UserPreferencesModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSelectImportSource: (source: DataSourceChoice) => void;
+  onTryDemo: () => void;
   weightUnit: WeightUnit;
   onWeightUnitChange: (unit: WeightUnit) => void;
   bodyMapGender: BodyMapGender;
@@ -30,6 +34,8 @@ interface UserPreferencesModalProps {
 export const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
   isOpen,
   onClose,
+  onSelectImportSource,
+  onTryDemo,
   weightUnit,
   onWeightUnitChange,
   bodyMapGender,
@@ -76,6 +82,7 @@ export const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
             </div>
 
             <div className="relative space-y-4">
+              <UserPreferencesImportSection onSelectPlatform={onSelectImportSource} onTryDemo={onTryDemo} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <WeightUnitSection weightUnit={weightUnit} onWeightUnitChange={onWeightUnitChange} />
                 <BodyMapGenderSection bodyMapGender={bodyMapGender} onBodyMapGenderChange={onBodyMapGenderChange} />

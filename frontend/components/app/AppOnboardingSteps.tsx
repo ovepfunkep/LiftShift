@@ -2,8 +2,6 @@ import React from 'react';
 import type { BodyMapGender } from '../bodyMap/BodyMap';
 import type { WeightUnit } from '../../utils/storage/localStorage';
 import type { OnboardingFlow } from '../../app/onboarding/types';
-import { LandingPage } from '../landing/ui/LandingPage';
-import { getPreferencesConfirmed } from '../../utils/storage/localStorage';
 import { OnboardingPreferencesStep } from './OnboardingPreferencesStep';
 import { OnboardingDemoStep } from './OnboardingDemoStep';
 import { HevyLoginStep, LyftaLoginStep } from './OnboardingLoginSteps';
@@ -57,37 +55,6 @@ export const AppOnboardingSteps: React.FC<AppOnboardingStepsProps> = ({
 }) => {
   const closeForUpdate = onboarding.intent === 'update' ? () => onSetOnboarding(null) : undefined;
 
-  if (onboarding.step === 'platform') {
-    return (
-      <LandingPage
-        onSelectPlatform={(source) => {
-          onSetCsvImportError(null);
-          onSetHevyLoginError(null);
-          onSetLyfatLoginError(null);
-          if (source === 'strong') {
-            onSetOnboarding({ intent: onboarding.intent, step: 'strong_prefs', platform: 'strong' });
-            return;
-          }
-          if (source === 'lyfta') {
-            onSetOnboarding({ intent: onboarding.intent, step: 'lyfta_prefs', platform: 'lyfta' });
-            return;
-          }
-          if (source === 'other') {
-            onSetOnboarding({ intent: onboarding.intent, step: 'other_prefs', platform: 'other' });
-            return;
-          }
-          onSetOnboarding({ intent: onboarding.intent, step: 'hevy_prefs', platform: 'hevy' });
-        }}
-        onTryDemo={() => {
-          onSetCsvImportError(null);
-          onSetHevyLoginError(null);
-          onSetLyfatLoginError(null);
-          onSetOnboarding({ intent: 'initial', step: 'demo_prefs', platform: 'other' });
-        }}
-      />
-    );
-  }
-
   if (onboarding.step === 'demo_prefs') {
     return (
       <OnboardingDemoStep
@@ -111,7 +78,6 @@ export const AppOnboardingSteps: React.FC<AppOnboardingStepsProps> = ({
         intent={onboarding.intent}
         platform="hevy"
         nextStep="hevy_login"
-        backStep="platform"
         bodyMapGender={bodyMapGender}
         weightUnit={weightUnit}
         isAnalyzing={isAnalyzing}
@@ -129,7 +95,6 @@ export const AppOnboardingSteps: React.FC<AppOnboardingStepsProps> = ({
         intent={onboarding.intent}
         platform="lyfta"
         nextStep="lyfta_login"
-        backStep="platform"
         bodyMapGender={bodyMapGender}
         weightUnit={weightUnit}
         isAnalyzing={isAnalyzing}
@@ -148,7 +113,6 @@ export const AppOnboardingSteps: React.FC<AppOnboardingStepsProps> = ({
         platform="strong"
         nextStep="strong_csv"
         nextBackStep="strong_prefs"
-        backStep="platform"
         bodyMapGender={bodyMapGender}
         weightUnit={weightUnit}
         isAnalyzing={isAnalyzing}
@@ -167,7 +131,6 @@ export const AppOnboardingSteps: React.FC<AppOnboardingStepsProps> = ({
         platform="other"
         nextStep="other_csv"
         nextBackStep="other_prefs"
-        backStep="platform"
         bodyMapGender={bodyMapGender}
         weightUnit={weightUnit}
         isAnalyzing={isAnalyzing}

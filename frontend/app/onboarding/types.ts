@@ -3,7 +3,6 @@ import type { DataSourceChoice } from '../../utils/storage/dataSourceStorage';
 export type OnboardingIntent = 'initial' | 'update';
 
 export type OnboardingStep =
-  | 'platform'
   | 'demo_prefs'
   | 'strong_prefs'
   | 'strong_csv'

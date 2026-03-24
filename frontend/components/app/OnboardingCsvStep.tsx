@@ -65,7 +65,7 @@ export const OnboardingCsvStep: React.FC<OnboardingCsvStepProps> = ({
         onSetOnboarding({ intent, step: backStep, platform });
         return;
       }
-      onSetOnboarding({ intent: 'initial', step: 'platform' });
+      onSetOnboarding(null);
     }}
     onClose={onClose}
   />

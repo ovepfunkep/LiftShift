@@ -1,5 +1,5 @@
 import React from 'react';
-import { Coffee, Github, Mail } from 'lucide-react';
+import { Coffee, Mail } from 'lucide-react';
 import { UNIFORM_FOOTER_BUTTON_CLASS, UNIFORM_HEADER_BUTTON_CLASS } from '../../utils/ui/uiConstants';
 
 type SupportLinksVariant = 'primary' | 'secondary' | 'all';
@@ -32,28 +32,6 @@ export const SupportLinks: React.FC<{
       {showPrimary && (
         <div className={primaryContainerClass}>
           <a
-            href="https://github.com/aree6/LiftShift"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => {
-              if (e.button === 1 || e.metaKey || e.ctrlKey) {
-                return;
-              }
-              e.preventDefault();
-              window.open('https://github.com/aree6/LiftShift', '_blank', 'noopener,noreferrer');
-            }}
-            onMouseDown={(e) => {
-              if (e.button === 1) {
-                return;
-              }
-            }}
-            className={`${uniformButtonClass} gap-2 ${layout === 'header' ? 'border-transparent hover:border-emerald-400' : 'flex-1 sm:flex-none min-w-[140px] sm:min-w-0'}`}
-          >
-            <Github className="w-4 h-4" />
-            <span>{layout === 'header' ? 'Star' : 'Star on GitHub'}</span>
-          </a>
-
-          <a
             href="https://www.buymeacoffee.com/aree6"
             target="_blank"
             rel="noopener noreferrer"
@@ -69,7 +47,7 @@ export const SupportLinks: React.FC<{
                 return;
               }
             }}
-            className={`${uniformButtonClass} gap-2`}
+            className={`${uniformButtonClass} gap-2 ${layout === 'header' ? '' : 'flex-1 sm:flex-none min-w-[140px] sm:min-w-0'}`}
           >
             <Coffee className="w-4 h-4" />
             <span>Buy Me a Coffee</span>

@@ -14,23 +14,23 @@
  
  [[redirects]]
    from = "/how-it-works"
-   to = "/how-it-works/index.html"
-   status = 200
+   to = "/"
+   status = 301
  
  [[redirects]]
    from = "/how-it-works/*"
-   to = "/how-it-works/index.html"
-   status = 200
+   to = "/"
+   status = 301
 
  [[redirects]]
    from = "/features"
-   to = "/features/index.html"
-   status = 200
+   to = "/"
+   status = 301
  
  [[redirects]]
    from = "/features/*"
-   to = "/features/index.html"
-   status = 200
+   to = "/"
+   status = 301
  
  [[redirects]]
    from = "/privacy"
