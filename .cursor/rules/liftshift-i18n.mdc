@@ -1,0 +1,25 @@
+---
+description: LiftShift UI strings — English + Russian via i18next
+globs:
+  - frontend/locales/**
+  - frontend/i18n/**
+alwaysApply: false
+---
+
+# Internationalization (LiftShift)
+
+## Stack
+
+- [`i18next`](https://www.i18next.com/) + `react-i18next`; init in [`frontend/i18n/i18n.ts`](frontend/i18n/i18n.ts).
+- Locale files: [`frontend/locales/en.ts`](frontend/locales/en.ts) (default) and [`frontend/locales/ru.ts`](frontend/locales/ru.ts).
+
+## Rules for new copy
+
+1. **Add keys to both `en` and `ru`** in the same commit/change. Do not ship Russian-only or English-only keys except during a short WIP (finish before merge).
+2. Use **nested keys** with dot notation, e.g. `log.saveWorkout`, `preferences.title`. Keep groups stable (`nav`, `log`, `preferences`, …).
+3. In components: `const { t } = useTranslation();` then `t('log.saveWorkout')`. For interpolation use `t('key', { name: value })` and matching `{{name}}` in strings.
+4. **No user-visible English literals** in TSX for navigation, settings, workout log, modals, or errors shown to the user—unless the string is a proper noun (e.g. app name, third-party brand).
+
+## Language switch
+
+- User choice persists via i18next (`liftshift_locale`). Do not invent a second locale storage key for the same purpose.

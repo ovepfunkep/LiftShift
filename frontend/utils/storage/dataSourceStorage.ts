@@ -1,7 +1,7 @@
 import { createStorageManager } from './createStorageManager';
 
 // Type moved from dataSources/types.ts
-export type DataSourceChoice = 'strong' | 'hevy' | 'lyfta' | 'other';
+export type DataSourceChoice = 'strong' | 'hevy' | 'lyfta' | 'other' | 'manual';
 
 export type LoginMethod = 'csv' | 'credentials' | 'apiKey';
 
@@ -12,7 +12,11 @@ type LastLoginRecord = {
 
 type LastLoginMap = Partial<Record<DataSourceChoice, LastLoginRecord>>;
 
-const validDataSources: DataSourceChoice[] = ['strong', 'hevy', 'lyfta', 'other'];
+const validDataSources: DataSourceChoice[] = ['strong', 'hevy', 'lyfta', 'other', 'manual'];
+
+/** CSV import only — `manual` is excluded from last CSV platform */
+const csvImportPlatforms: DataSourceChoice[] = ['strong', 'hevy', 'lyfta', 'other'];
+
 const validLoginMethods: LoginMethod[] = ['csv', 'credentials', 'apiKey'];
 
 // Data Source Choice
@@ -89,11 +93,12 @@ export const saveLyfataApiKey = (apiKey: string): void => lyftaApiKeyStorage.set
 export const getLyfataApiKey = (): string | null => lyftaApiKeyStorage.get();
 export const clearLyfataApiKey = (): void => lyftaApiKeyStorage.clear();
 
-// Last CSV Platform
+// Last CSV Platform (manual is not a CSV platform)
 const lastCsvPlatformStorage = createStorageManager<DataSourceChoice | null>({
   key: 'hevy_analytics_last_csv_platform',
   defaultValue: null,
-  validator: (v) => validDataSources.includes(v as DataSourceChoice) ? (v as DataSourceChoice) : null,
+  validator: (v) =>
+    v != null && csvImportPlatforms.includes(v as DataSourceChoice) ? (v as DataSourceChoice) : null,
 });
 
 export const saveLastCsvPlatform = (platform: DataSourceChoice): void => lastCsvPlatformStorage.set(platform);

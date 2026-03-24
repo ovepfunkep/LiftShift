@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Upload } from 'lucide-react';
 import { OnboardingModalShell } from '../ui/OnboardingModalShell';
 
@@ -23,6 +24,7 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
   onClose,
   onClearCache,
 }) => {
+  const { t } = useTranslation();
   const [showLoginHelp, setShowLoginHelp] = useState(false);
 
   return (
@@ -41,7 +43,7 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
 
           <div className="text-center">
             <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Hevy</h2>
-            <p className="mt-1 text-sm text-slate-300">Choose how you want to sync your data.</p>
+            <p className="mt-1 text-sm text-slate-300">{t('hevyModal.subtitle')}</p>
           </div>
 
           <div className="flex items-center justify-end">
@@ -51,7 +53,7 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
                 onClick={onClose}
                 className="inline-flex items-center justify-center h-9 px-3 rounded-md text-xs font-semibold bg-black/60 hover:bg-black/70 border border-slate-700/50 text-slate-200"
               >
-                Close
+                {t('common.close')}
               </button>
             ) : null}
           </div>
@@ -66,8 +68,8 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
               onClick={() => onSelect('saved')}
               className="group rounded-xl border border-emerald-500/30 bg-emerald-500/15 hover:bg-emerald-500/20 px-4 py-4 text-left transition-colors"
             >
-              <div className="text-white font-semibold text-lg">Continue</div>
-              <div className="mt-1 text-xs text-slate-200/90">Auto-sync using your saved session.</div>
+              <div className="text-white font-semibold text-lg">{t('hevyModal.continue')}</div>
+              <div className="mt-1 text-xs text-slate-200/90">{t('hevyModal.continueHint')}</div>
             </button>
 
             {onClearCache ? (
@@ -76,8 +78,8 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
                 onClick={onClearCache}
                 className="group rounded-xl border border-slate-700/60 bg-white/5 hover:bg-white/10 px-4 py-4 text-left transition-colors"
               >
-                <div className="text-white font-semibold text-lg">Clear cache</div>
-                <div className="mt-1 text-xs text-slate-200/90">Reset tokens + preferences and restart setup.</div>
+                <div className="text-white font-semibold text-lg">{t('hevyModal.clearCache')}</div>
+                <div className="mt-1 text-xs text-slate-200/90">{t('hevyModal.clearCacheHint')}</div>
               </button>
             ) : null}
           </div>
@@ -88,8 +90,8 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
               onClick={onClearCache}
               className="w-full rounded-xl border border-slate-700/60 bg-white/5 hover:bg-white/10 px-4 py-3 text-left transition-colors"
             >
-              <div className="text-white font-semibold">Clear cache</div>
-              <div className="mt-1 text-xs text-slate-200/90">Reset tokens + preferences and restart setup.</div>
+              <div className="text-white font-semibold">{t('hevyModal.clearCache')}</div>
+              <div className="mt-1 text-xs text-slate-200/90">{t('hevyModal.clearCacheHint')}</div>
             </button>
           </div>
         ) : null}
@@ -105,10 +107,10 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
                 <div className="relative w-9 h-9 rounded-lg bg-black/20 border border-slate-700/50 flex items-center justify-center flex-shrink-0">
                   <img src="/images/brands/hevy_small.webp" alt="Hevy" className="w-6 h-6 object-contain" loading="lazy" decoding="async" />
                 </div>
-                <div className="text-white font-semibold text-lg truncate">Login with Hevy</div>
+                <div className="text-white font-semibold text-lg truncate">{t('hevyModal.loginWithHevy')}</div>
               </div>
             </div>
-            <div className="mt-1 text-xs text-slate-200/90">Auto-sync your latest workouts (recommended).</div>
+            <div className="mt-1 text-xs text-slate-200/90">{t('hevyModal.loginHevyHint')}</div>
           </button>
 
           <button
@@ -124,17 +126,15 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
                     EXP
                   </span>
                 </div>
-                <div className="text-white font-semibold text-lg">
-                  Import <span className="text-slate-300 text-base">.CSV</span>
-                </div>
+                <div className="text-white font-semibold text-lg">{t('hevyModal.importCsv')}</div>
               </div>
             </div>
-            <div className="mt-1 text-xs text-slate-200/90">Manual sync. Export and upload when needed.</div>
+            <div className="mt-1 text-xs text-slate-200/90">{t('hevyModal.importCsvHint')}</div>
           </button>
         </div>
 
         <div className="mt-5 text-[11px] text-slate-400">
-          Your login is sent only to your own backend to retrieve a token. Your workouts are processed in your browser.
+          {t('hevyModal.privacyNote')}
         </div>
 
         <div className="mt-4">
@@ -143,7 +143,7 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
             onClick={() => setShowLoginHelp((v) => !v)}
             className="w-full text-center text-sm font-semibold text-blue-400 hover:text-blue-300 underline underline-offset-4"
           >
-            {showLoginHelp ? 'Hide: See how to login with Hevy' : 'See how to login with Hevy'}
+            {showLoginHelp ? t('hevyModal.loginHelpHide') : t('hevyModal.loginHelpShow')}
           </button>
 
           {showLoginHelp ? (
@@ -183,7 +183,7 @@ export const HevyMethodModal: React.FC<HevyMethodModalProps> = ({
               </div>
 
               <div className="text-xs text-slate-400 text-center">
-                Support is English-only right now. If you use quick login, use the same email/username here. If you don’t have a password, set one in your Hevy account first.
+                {t('hevyModal.supportEnglish')}
               </div>
             </div>
           ) : null}

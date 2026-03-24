@@ -2,6 +2,7 @@ export { Page };
 
 import React, { useEffect } from 'react';
 import { HashRouter } from 'react-router';
+import '../../i18n/i18n';
 import App from '../../App';
 import { initGA } from '../../utils/integrations/ga';
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calendar, Pencil, X } from 'lucide-react';
 
 interface AppFilterControlsProps {
@@ -15,7 +16,9 @@ export const AppFilterControls: React.FC<AppFilterControlsProps> = ({
   setCalendarOpen,
   clearAllFilters,
   toggleCalendarOpen,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <div
     className={`relative flex items-center gap-2 rounded-lg px-3 py-2 h-10 shadow-sm transition-all duration-300 ${
       hasActiveCalendarFilter ? 'bg-black/70 border border-slate-600/60' : 'bg-black/70 border border-slate-700/50'
@@ -34,7 +37,7 @@ export const AppFilterControls: React.FC<AppFilterControlsProps> = ({
             <span className="max-w-[220px] truncate">{calendarSummaryText}</span>
           </button>
         ) : (
-          <span className="text-xs text-slate-500 whitespace-nowrap">No filter</span>
+          <span className="text-xs text-slate-500 whitespace-nowrap">{t('filters.noFilter')}</span>
         )}
       </div>
     </div>
@@ -45,8 +48,8 @@ export const AppFilterControls: React.FC<AppFilterControlsProps> = ({
           type="button"
           onClick={() => setCalendarOpen(true)}
           className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-black/50 hover:bg-white/5 border border-slate-700/50 text-slate-200 transition-colors"
-          title="Edit filter"
-          aria-label="Edit filter"
+          title={t('filters.editFilter')}
+          aria-label={t('filters.editFilter')}
         >
           <Pencil className="w-4 h-4 text-slate-300" />
         </button>
@@ -54,8 +57,8 @@ export const AppFilterControls: React.FC<AppFilterControlsProps> = ({
           type="button"
           onClick={clearAllFilters}
           className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-black/50 hover:bg-white/5 border border-slate-700/50 text-slate-200 transition-colors"
-          title="Clear filter"
-          aria-label="Clear filter"
+          title={t('filters.clearFilter')}
+          aria-label={t('filters.clearFilter')}
         >
           <X className="w-4 h-4 text-slate-300" />
         </button>
@@ -66,8 +69,9 @@ export const AppFilterControls: React.FC<AppFilterControlsProps> = ({
         className="inline-flex items-center gap-2 h-8 px-2 rounded-md bg-black/50 hover:bg-white/5 border border-slate-700/50 text-xs font-semibold text-slate-200 whitespace-nowrap transition-colors cursor-pointer"
       >
         <Calendar className="w-4 h-4 text-slate-400" />
-        <span>Calendar</span>
+        <span>{t('filters.calendar')}</span>
       </button>
     )}
   </div>
-);
+  );
+};

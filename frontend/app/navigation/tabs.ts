@@ -1,6 +1,7 @@
 export enum Tab {
   DASHBOARD = 'dashboard',
   EXERCISES = 'exercises',
+  LOG = 'log',
   HISTORY = 'history',
   MUSCLE_ANALYSIS = 'muscle-analysis',
   FLEX = 'flex',
@@ -10,6 +11,7 @@ export const getTabFromPathname = (pathname: string): Tab => {
   const normalized = (pathname || '/').replace(/\/+$/g, '') || '/';
   if (normalized === '/' || normalized === '/dashboard') return Tab.DASHBOARD;
   if (normalized === `/${Tab.EXERCISES}`) return Tab.EXERCISES;
+  if (normalized === `/${Tab.LOG}`) return Tab.LOG;
   if (normalized === `/${Tab.HISTORY}`) return Tab.HISTORY;
   if (normalized === `/${Tab.MUSCLE_ANALYSIS}`) return Tab.MUSCLE_ANALYSIS;
   if (normalized === `/${Tab.FLEX}`) return Tab.FLEX;

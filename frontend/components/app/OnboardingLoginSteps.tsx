@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { OnboardingFlow } from '../../app/onboarding/types';
 import { HevyLoginModal } from '../modals/auth/HevyLoginModal';
 import { LyfataLoginModal } from '../modals/auth/LyfataLoginModal';
@@ -25,7 +26,9 @@ export const HevyLoginStep: React.FC<HevyLoginStepProps> = ({
   onHevySyncSaved,
   onClearCacheAndRestart,
   onSetOnboarding,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <HevyLoginModal
     intent={intent}
     initialMode={getHevyProApiKey() ? 'apiKey' : 'credentials'}
@@ -33,8 +36,8 @@ export const HevyLoginStep: React.FC<HevyLoginStepProps> = ({
     isLoading={isAnalyzing}
     onLogin={onHevyLogin}
     onLoginWithApiKey={onHevyApiKeyLogin}
-    loginLabel={intent === 'initial' ? 'Continue' : 'Login with Hevy'}
-    apiKeyLoginLabel={intent === 'initial' ? 'Continue' : 'Continue with API key'}
+    loginLabel={intent === 'initial' ? t('onboarding.continue') : t('onboarding.loginWithHevy')}
+    apiKeyLoginLabel={intent === 'initial' ? t('onboarding.continue') : t('onboarding.continueWithApiKey')}
     hasSavedSession={Boolean(getHevyAuthToken() || getHevyProApiKey()) && getPreferencesConfirmed()}
     onSyncSaved={onHevySyncSaved}
     onClearCache={onClearCacheAndRestart}
@@ -46,7 +49,8 @@ export const HevyLoginStep: React.FC<HevyLoginStepProps> = ({
     }
     onClose={intent === 'update' ? () => onSetOnboarding(null) : undefined}
   />
-);
+  );
+};
 
 interface LyftaLoginStepProps {
   intent: OnboardingFlow['intent'];
@@ -66,13 +70,15 @@ export const LyftaLoginStep: React.FC<LyftaLoginStepProps> = ({
   onLyfatSyncSaved,
   onClearCacheAndRestart,
   onSetOnboarding,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <LyfataLoginModal
     intent={intent}
     errorMessage={lyfatLoginError}
     isLoading={isAnalyzing}
     onLogin={onLyfatLogin}
-    loginLabel={intent === 'initial' ? 'Continue' : 'Login with Lyfta'}
+    loginLabel={intent === 'initial' ? t('onboarding.continue') : t('onboarding.loginWithLyfta')}
     hasSavedSession={Boolean(getLyfataApiKey()) && getPreferencesConfirmed()}
     onSyncSaved={onLyfatSyncSaved}
     onClearCache={onClearCacheAndRestart}
@@ -84,4 +90,5 @@ export const LyftaLoginStep: React.FC<LyftaLoginStepProps> = ({
     }
     onClose={intent === 'update' ? () => onSetOnboarding(null) : undefined}
   />
-);
+  );
+};

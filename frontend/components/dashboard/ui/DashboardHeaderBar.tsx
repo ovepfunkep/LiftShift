@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Brain, Clock } from 'lucide-react';
 import { ViewHeader } from '../../layout/ViewHeader';
 
@@ -14,10 +15,12 @@ export const DashboardHeaderBar: React.FC<DashboardHeaderBarProps> = ({
   filtersSlot,
   stickyHeader,
   onAIAnalyze,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <div className="hidden sm:contents">
     <ViewHeader
-      leftStats={[{ icon: Clock, value: totalWorkouts, label: 'Workouts' }]}
+      leftStats={[{ icon: Clock, value: totalWorkouts, label: t('dashboard.workouts') }]}
       filtersSlot={filtersSlot}
       sticky={stickyHeader}
       rightSlot={
@@ -31,10 +34,10 @@ export const DashboardHeaderBar: React.FC<DashboardHeaderBarProps> = ({
               <button
                 onClick={onAIAnalyze}
                 className="relative z-[2] inline-flex items-center gap-2 justify-center whitespace-nowrap rounded-md text-xs font-medium focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-9 px-3 py-1.5 bg-transparent text-slate-200 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
-                title="AI Analyze"
+                title={t('dashboard.aiAnalyzeTitle')}
               >
                 <Brain className="w-4 h-4 text-purple-400" />
-                <span className="hidden sm:inline">AI Analyze</span>
+                <span className="hidden sm:inline">{t('dashboard.aiAnalyze')}</span>
               </button>
             </div>
           </div>
@@ -42,4 +45,5 @@ export const DashboardHeaderBar: React.FC<DashboardHeaderBarProps> = ({
       }
     />
   </div>
-);
+  );
+};

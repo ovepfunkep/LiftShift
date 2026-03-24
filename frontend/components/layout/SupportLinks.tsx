@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Coffee, Mail } from 'lucide-react';
 import { UNIFORM_FOOTER_BUTTON_CLASS, UNIFORM_HEADER_BUTTON_CLASS } from '../../utils/ui/uiConstants';
 
@@ -12,6 +13,7 @@ export const SupportLinks: React.FC<{
   primaryMiddleSlot?: React.ReactNode;
   primaryRightSlot?: React.ReactNode;
 }> = ({ variant = 'all', layout = 'footer', className, primaryMiddleSlot, primaryRightSlot }) => {
+  const { t } = useTranslation();
   const uniformButtonClass = layout === 'header' ? UNIFORM_HEADER_BUTTON_CLASS : UNIFORM_FOOTER_BUTTON_CLASS;
 
   const showPrimary = variant === 'all' || variant === 'primary';
@@ -50,7 +52,7 @@ export const SupportLinks: React.FC<{
             className={`${uniformButtonClass} gap-2 ${layout === 'header' ? '' : 'flex-1 sm:flex-none min-w-[140px] sm:min-w-0'}`}
           >
             <Coffee className="w-4 h-4" />
-            <span>Buy Me a Coffee</span>
+            <span>{t('support.coffee')}</span>
           </a>
 
           {primaryMiddleSlot}
@@ -71,7 +73,7 @@ export const SupportLinks: React.FC<{
             className={`${uniformButtonClass} gap-2 border-transparent hover:border-emerald-400`}
           >
             <Mail className="w-4 h-4" />
-            <span>Let's Talk</span>
+            <span>{t('support.talk')}</span>
           </a>
 
           {primaryRightSlot ? (

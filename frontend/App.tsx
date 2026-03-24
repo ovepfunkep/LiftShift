@@ -7,7 +7,14 @@ import { AppLoadingOverlay } from './components/app/AppLoadingOverlay';
 import { UserPreferencesModal } from './components/modals/userPreferences/UserPreferencesModal';
 import type { OnboardingFlow } from './app/onboarding/types';
 import { getEffectiveNowFromWorkoutData } from './utils/date/dateUtils';
-import { getDataSourceChoice } from './utils/storage/dataSourceStorage';
+import { identifyPersonalRecords } from './utils/analysis/core';
+import {
+  getDataSourceChoice,
+  saveDataSourceChoice,
+  saveSetupComplete,
+} from './utils/storage/dataSourceStorage';
+import { saveManualWorkoutSets } from './utils/storage/manualWorkoutStorage';
+import { removeSessionSets } from './app/workoutLog/sessionGrouping';
 import { clearCacheAndRestart as clearCacheAndRestartNow } from './app/state';
 import { usePrefetchHeavyViews } from './app/navigation';
 import { useStartupAutoLoad } from './app/startup';
@@ -256,6 +263,25 @@ const App: React.FC = () => {
     clearCacheAndRestartNow();
   }, []);
 
+  const canSaveManual = dataSource === 'manual' || dataSource === null;
+
+  const handleSaveManualWorkout = useCallback(
+    (newSets: WorkoutSet[], opts?: { replaceSessionKey?: string }) => {
+      if (dataSource !== 'manual' && dataSource !== null) return;
+      const base = opts?.replaceSessionKey
+        ? removeSessionSets(parsedData, opts.replaceSessionKey)
+        : parsedData;
+      const merged = identifyPersonalRecords([...base, ...newSets]);
+      setParsedData(merged);
+      setHasHydratedData(true);
+      setDataSource('manual');
+      saveManualWorkoutSets(merged);
+      saveDataSourceChoice('manual');
+      saveSetupComplete(true);
+    },
+    [dataSource, parsedData]
+  );
+
   const handleHistoryDayTitleClick = useCallback(
     (date: Date) => {
       setSelectedDay(date);
@@ -339,6 +365,8 @@ const App: React.FC = () => {
         weightUnit={weightUnit}
         exerciseTrendMode={exerciseTrendMode}
         now={filteredEffectiveNow}
+        canSaveManual={canSaveManual}
+        onSaveManualWorkout={handleSaveManualWorkout}
       />
 
       <UserPreferencesModal

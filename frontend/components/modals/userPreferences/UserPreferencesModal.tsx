@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Settings, X } from 'lucide-react';
 import { WeightUnit, DateMode, ThemeMode, ExerciseTrendMode } from '../../../utils/storage/localStorage';
 import { BodyMapGender } from '../../bodyMap/BodyMap';
@@ -12,6 +13,7 @@ import {
   WeightUnitSection,
 } from './UserPreferencesSections';
 import { UserPreferencesImportSection } from './UserPreferencesImportSection';
+import { LanguageSection } from './UserPreferencesLanguageSection';
 
 interface UserPreferencesModalProps {
   isOpen: boolean;
@@ -48,6 +50,7 @@ export const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
   onExerciseTrendModeChange,
   dataAgeInfo,
 }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const isLightTheme = themeMode === 'light';
@@ -70,7 +73,7 @@ export const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
                   <Settings className="w-4 h-4 text-emerald-400" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-200">Preferences</h2>
+                <h2 className="text-lg font-bold text-slate-200">{t('preferences.title')}</h2>
               </div>
               <button
                 type="button"
@@ -82,6 +85,7 @@ export const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
             </div>
 
             <div className="relative space-y-4">
+              <LanguageSection />
               <UserPreferencesImportSection onSelectPlatform={onSelectImportSource} onTryDemo={onTryDemo} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <WeightUnitSection weightUnit={weightUnit} onWeightUnitChange={onWeightUnitChange} />
@@ -101,7 +105,7 @@ export const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
                 onClick={onClose}
                 className="w-full py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-all"
               >
-                Done
+                {t('preferences.done')}
               </button>
             </div>
           </div>

@@ -53,6 +53,9 @@ interface AppShellProps {
   weightUnit: 'kg' | 'lbs';
   exerciseTrendMode: 'stable' | 'reactive';
   now: Date;
+
+  canSaveManual: boolean;
+  onSaveManualWorkout: (newSets: WorkoutSet[], opts?: { replaceSessionKey?: string }) => void;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -103,6 +106,8 @@ export const AppShell: React.FC<AppShellProps> = ({
   weightUnit,
   exerciseTrendMode,
   now,
+  canSaveManual,
+  onSaveManualWorkout,
 }) => {
   if (onboardingIntent === 'initial') return null;
 
@@ -165,6 +170,8 @@ export const AppShell: React.FC<AppShellProps> = ({
         weightUnit={weightUnit}
         exerciseTrendMode={exerciseTrendMode}
         now={now}
+        canSaveManual={canSaveManual}
+        onSaveManualWorkout={onSaveManualWorkout}
       />
     </>
   );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Scale, Users } from 'lucide-react';
 import { WeightUnit } from '../../../utils/storage/localStorage';
 import { BodyMapGender } from '../../bodyMap/BodyMap';
@@ -8,11 +9,13 @@ interface WeightUnitSectionProps {
   onWeightUnitChange: (unit: WeightUnit) => void;
 }
 
-export const WeightUnitSection: React.FC<WeightUnitSectionProps> = ({ weightUnit, onWeightUnitChange }) => (
+export const WeightUnitSection: React.FC<WeightUnitSectionProps> = ({ weightUnit, onWeightUnitChange }) => {
+  const { t } = useTranslation();
+  return (
   <div className="space-y-2">
     <div className="flex items-center gap-2 text-slate-200">
       <Scale className="w-3.5 h-3.5 text-slate-500" />
-      <span className="text-xs font-medium">Weight Unit</span>
+      <span className="text-xs font-medium">{t('preferences.weightUnit')}</span>
     </div>
     <div className="grid grid-cols-2 gap-2">
       <button
@@ -39,7 +42,8 @@ export const WeightUnitSection: React.FC<WeightUnitSectionProps> = ({ weightUnit
       </button>
     </div>
   </div>
-);
+  );
+};
 
 interface BodyMapGenderSectionProps {
   bodyMapGender: BodyMapGender;
@@ -49,11 +53,13 @@ interface BodyMapGenderSectionProps {
 export const BodyMapGenderSection: React.FC<BodyMapGenderSectionProps> = ({
   bodyMapGender,
   onBodyMapGenderChange,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <div className="space-y-2">
     <div className="flex items-center gap-2 text-slate-200">
       <Users className="w-3.5 h-3.5 text-slate-500" />
-      <span className="text-xs font-medium">Body Map Style</span>
+      <span className="text-xs font-medium">{t('preferences.bodyMapStyle')}</span>
     </div>
     <div className="grid grid-cols-2 gap-2">
       <button
@@ -65,7 +71,7 @@ export const BodyMapGenderSection: React.FC<BodyMapGenderSectionProps> = ({
             : 'bg-slate-900/20 border-slate-700/50 text-slate-300 hover:border-slate-600 hover:bg-slate-900/40'
         }`}
       >
-        <span className="text-sm font-medium">Male</span>
+        <span className="text-sm font-medium">{t('preferences.male')}</span>
       </button>
       <button
         type="button"
@@ -76,8 +82,9 @@ export const BodyMapGenderSection: React.FC<BodyMapGenderSectionProps> = ({
             : 'bg-slate-900/20 border-slate-700/50 text-slate-300 hover:border-slate-600 hover:bg-slate-900/40'
         }`}
       >
-        <span className="text-sm font-medium">Female</span>
+        <span className="text-sm font-medium">{t('preferences.female')}</span>
       </button>
     </div>
   </div>
-);
+  );
+};

@@ -18,11 +18,13 @@ import {
   clearLyfataApiKey,
   clearSetupComplete,
 } from '../../utils/storage/dataSourceStorage';
+import { clearManualWorkoutSets } from '../../utils/storage/manualWorkoutStorage';
 
 export const clearCacheAndRestart = (): void => {
   trackEvent('cache_clear', {});
   resetUser();
   clearCSVData();
+  clearManualWorkoutSets();
   clearHevyAuthToken();
   clearHevyProApiKey();
   clearLyfataApiKey();

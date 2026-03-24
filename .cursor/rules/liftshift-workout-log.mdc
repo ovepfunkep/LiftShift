@@ -1,0 +1,32 @@
+---
+description: LiftShift workout log — drafts, WorkoutSet mapping, manual sessions
+globs: frontend/**/workoutLog/**
+alwaysApply: false
+---
+
+# Workout log (`workoutLog`)
+
+## Where code lives
+
+- **Pure logic** (types, builders, lookups, timers): [`frontend/app/workoutLog/`](frontend/app/workoutLog/)
+- **UI**: [`frontend/components/workoutLog/`](frontend/components/workoutLog/)
+
+Keep parsing/building/testable logic out of components; components orchestrate state and call pure functions.
+
+## Data flow
+
+- Draft → [`buildWorkoutSetsFromDraft`](frontend/app/workoutLog/buildWorkoutSetsFromDraft.ts) → `WorkoutSet[]` → merge → [`identifyPersonalRecords`](frontend/utils/analysis/core/) → persist via [`saveManualWorkoutSets`](frontend/utils/storage/manualWorkoutStorage.ts).
+- Editing a saved session: load with [`setsToDraftSession`](frontend/app/workoutLog/setsToDraftSession.ts), strip old sets with [`removeSessionSets`](frontend/app/workoutLog/sessionGrouping.ts), then append rebuilt sets (App passes `replaceSessionKey` into the save handler).
+- Session identity uses [`getSessionKey`](frontend/utils/date/dateKeys.ts) (`start_time`, `title`, `parsedDate`).
+
+## Manual-only edits
+
+- **Editing** past sessions only when the app allows manual logging (same gate as save: `canSaveManual` / data source `manual` or `null`). Do not add edit paths that bypass this without an explicit product decision.
+
+## i18n
+
+- Any new labels, hints, validation messages, or `aria-label`s on this screen go through **both** [`frontend/locales/en.ts`](frontend/locales/en.ts) and [`frontend/locales/ru.ts`](frontend/locales/ru.ts). See the sibling rule `liftshift-i18n.mdc`.
+
+## UX / a11y
+
+- Prefer real `<label htmlFor=…>` / `aria-describedby` for field hints over-only `title` when the hint matters for understanding the field.

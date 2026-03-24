@@ -12,6 +12,7 @@ export const usePrefetchHeavyViews = (): void => {
       import('../../components/historyView/ui/HistoryView');
       import('../../components/muscleAnalysis/ui/MuscleAnalysis');
       import('../../components/flexView/ui/FlexView');
+      import('../../components/workoutLog/LogWorkoutView');
     });
   }, []);
 };

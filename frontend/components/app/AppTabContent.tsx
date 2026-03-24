@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { DailySummary, ExerciseStats, WorkoutSet } from '../../types';
 import type { BodyMapGender } from '../bodyMap/BodyMap';
 import type { ExerciseTrendMode, WeightUnit } from '../../utils/storage/localStorage';
@@ -10,6 +11,7 @@ const ExerciseView = React.lazy(() => import('../exerciseView/ui/ExerciseView').
 const HistoryView = React.lazy(() => import('../historyView/ui/HistoryView').then((m) => ({ default: m.HistoryView })));
 const MuscleAnalysis = React.lazy(() => import('../muscleAnalysis/ui/MuscleAnalysis').then((m) => ({ default: m.MuscleAnalysis })));
 const FlexView = React.lazy(() => import('../flexView/ui/FlexView').then((m) => ({ default: m.FlexView })));
+const LogWorkoutView = React.lazy(() => import('../workoutLog/LogWorkoutView').then((m) => ({ default: m.LogWorkoutView })));
 
 type InitialMuscleForAnalysis = { muscleId: string; viewMode: 'muscle' | 'group' | 'headless' } | null;
 
@@ -54,6 +56,9 @@ interface AppTabContentProps {
   weightUnit: WeightUnit;
   exerciseTrendMode: ExerciseTrendMode;
   now: Date;
+
+  canSaveManual: boolean;
+  onSaveManualWorkout: (newSets: WorkoutSet[], opts?: { replaceSessionKey?: string }) => void;
 }
 
 export const AppTabContent: React.FC<AppTabContentProps> = ({
@@ -81,13 +86,16 @@ export const AppTabContent: React.FC<AppTabContentProps> = ({
   weightUnit,
   exerciseTrendMode,
   now,
+  canSaveManual,
+  onSaveManualWorkout,
 }) => {
+  const { t } = useTranslation();
   return (
     <main
       ref={mainRef}
       className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain bg-black/70 px-2 py-0 sm:px-3 sm:py-0 md:px-1 md:py-0 lg:px-2 lg:py-0"
     >
-      <Suspense fallback={<div className="text-slate-400 p-4">Loading...</div>}>
+      <Suspense fallback={<div className="text-slate-400 p-4">{t('common.loading')}</div>}>
         {activeTab === Tab.DASHBOARD && (
           <Dashboard
             dailyData={dailySummaries}
@@ -103,6 +111,14 @@ export const AppTabContent: React.FC<AppTabContentProps> = ({
             bodyMapGender={bodyMapGender}
             weightUnit={weightUnit}
             now={now}
+          />
+        )}
+        {activeTab === Tab.LOG && (
+          <LogWorkoutView
+            parsedData={parsedData}
+            weightUnit={weightUnit}
+            canSaveManual={canSaveManual}
+            onSaveWorkout={onSaveManualWorkout}
           />
         )}
         {activeTab === Tab.EXERCISES && (

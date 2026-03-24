@@ -1,37 +1,39 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Moon, Sparkles, Sun } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
-
-const labelForMode = (mode: string) => {
-  switch (mode) {
-    case 'light':
-      return 'Day';
-    case 'medium-dark':
-      return 'Medium';
-    case 'midnight-dark':
-      return 'Midnight';
-    case 'pure-black':
-      return 'Pure Black';
-    default:
-      return 'Theme';
-  }
-};
 
 export const ThemeToggleButton: React.FC<{ className?: string; compact?: boolean }> = ({
   className,
   compact = false,
 }) => {
+  const { t } = useTranslation();
   const { mode, cycleMode } = useTheme();
 
-  const { Icon, label } = useMemo(() => {
-    if (mode === 'light') return { Icon: Sun, label: 'Day' };
-    if (mode === 'medium-dark') return { Icon: Moon, label: 'Medium' };
-    if (mode === 'midnight-dark') return { Icon: Sparkles, label: 'Midnight' };
-    if (mode === 'pure-black') return { Icon: Moon, label: 'Pure Black' };
-    return { Icon: Moon, label: 'Theme' };
+  const labelForMode = (m: string) => {
+    switch (m) {
+      case 'light':
+        return t('themeToggle.day');
+      case 'medium-dark':
+        return t('themeToggle.medium');
+      case 'midnight-dark':
+        return t('themeToggle.midnight');
+      case 'pure-black':
+        return t('themeToggle.pureBlack');
+      default:
+        return t('themeToggle.theme');
+    }
+  };
+
+  const { Icon } = useMemo(() => {
+    if (mode === 'light') return { Icon: Sun };
+    if (mode === 'medium-dark') return { Icon: Moon };
+    if (mode === 'midnight-dark') return { Icon: Sparkles };
+    if (mode === 'pure-black') return { Icon: Moon };
+    return { Icon: Moon };
   }, [mode]);
 
-  const title = `Theme: ${labelForMode(mode)} (click to cycle)`;
+  const title = t('themeToggle.cycleTitle', { label: labelForMode(mode) });
 
   const getDotPosition = (index: number) => {
     const themeOrder = ['pure-black', 'light', 'midnight-dark', 'medium-dark'];

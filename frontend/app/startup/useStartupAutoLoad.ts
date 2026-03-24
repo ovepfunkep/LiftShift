@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { identifyPersonalRecords } from '../../utils/analysis/core';
 import { getCSVData, getPreferencesConfirmed, getWeightUnit, savePreferencesConfirmed } from '../../utils/storage/localStorage';
 import {
   getDataSourceChoice,
@@ -13,6 +14,7 @@ import {
   type DataSourceChoice,
   type LoginMethod,
 } from '../../utils/storage/dataSourceStorage';
+import { getManualWorkoutSets } from '../../utils/storage/manualWorkoutStorage';
 import { getHevyUsernameOrEmail, getHevyPassword } from '../../utils/storage/hevyCredentialsStorage';
 
 import { loadCsvAuto } from './startupAutoLoadCsv';
@@ -33,13 +35,38 @@ export const useStartupAutoLoad = (params: StartupAutoLoadParams): void => {
     // If dashboard already has data, don't auto-reload
     if (params.parsedData.length > 0) return;
 
+    const storedChoice = getDataSourceChoice();
+
+    // Manual snapshot: only when data source is manual (Hevy/CSV/Lyfta flows unchanged).
+    if (storedChoice === 'manual') {
+      const manualSets = getManualWorkoutSets();
+      if (manualSets && manualSets.length > 0) {
+        const enriched = identifyPersonalRecords(manualSets);
+        params.setParsedData(enriched);
+        params.setDataSource('manual');
+        saveSetupComplete(true);
+        if (!getPreferencesConfirmed()) savePreferencesConfirmed(true);
+        params.setIsAnalyzing(false);
+        params.setLoadingKind(null);
+        params.setOnboarding(null);
+        return;
+      }
+      if (getSetupComplete()) {
+        params.setDataSource('manual');
+        params.setIsAnalyzing(false);
+        params.setLoadingKind(null);
+        params.setOnboarding(null);
+        return;
+      }
+      return;
+    }
+
     if (!getSetupComplete()) return;
 
     if (!getPreferencesConfirmed()) {
       savePreferencesConfirmed(true);
     }
 
-    const storedChoice = getDataSourceChoice();
     if (!storedChoice) {
       saveSetupComplete(false);
       params.setIsAnalyzing(false);

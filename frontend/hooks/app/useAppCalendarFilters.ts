@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format, isSameDay, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { WorkoutSet } from '../../types';
 import { formatDayYearContraction, formatHumanReadableDate } from '../../utils/date/dateUtils';
@@ -35,6 +36,7 @@ export function useAppCalendarFilters({
   parsedData,
   effectiveNow,
 }: UseAppCalendarFiltersProps): UseAppCalendarFiltersReturn {
+  const { t, i18n } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
@@ -80,9 +82,9 @@ export function useAppCalendarFilters({
     if (selectedDay) return formatHumanReadableDate(selectedDay, { now: effectiveNow });
     if (selectedRange) return `${formatDayYearContraction(selectedRange.start)} – ${formatDayYearContraction(selectedRange.end)}`;
     if (selectedWeeks.length === 1) return `${formatDayYearContraction(selectedWeeks[0].start)} – ${formatDayYearContraction(selectedWeeks[0].end)}`;
-    if (selectedWeeks.length > 1) return `Weeks: ${selectedWeeks.length}`;
-    return 'No filter';
-  }, [effectiveNow, selectedDay, selectedRange, selectedWeeks]);
+    if (selectedWeeks.length > 1) return t('calendar.weeksCount', { count: selectedWeeks.length });
+    return t('calendar.noFilter');
+  }, [effectiveNow, selectedDay, selectedRange, selectedWeeks, t, i18n.language]);
 
   // Calendar boundaries
   const { minDate, maxDate, availableDatesSet } = useMemo(() => {
